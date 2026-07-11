@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fines - MessMate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background-color: #2c3e50;
+            min-height: 100vh;
+            padding-top: 20px;
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 15px 20px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #3498db;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        .card-header {
+            background-color: #3498db;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .badge {
+            font-size: 0.8em;
+        }
+        .payment-option {
+            display: none;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            color: black;
+            padding: 10px 0;
+            text-align: center;
+            margin-top: 30px;
+        }
+        .fine-item {
+            border-left: 4px solid #e74c3c;
+            padding-left: 15px;
+            margin-bottom: 15px;
+        }
+        .fine-item.paid {
+            border-left-color: #2ecc71;
+            opacity: 0.7;
+        }
+        .main-content {
+            padding: 20px;
+            flex: 1;
+        }
+        /* Booking policy style for the note box */
+        .booking-policy {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            color: black;
+        }
+        .booking-policy h5 {
+            color: black;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row flex-grow-1">
+           <!-- Sidebar Navigation -->
+           <div class="col-md-3 col-lg-2 sidebar">
+               <div class="text-center mb-4">
+                   <a href="{{ url_for('home') }}" class="navbar-brand text-white">
+                       <i class="fas fa-utensils me-2"></i> MessMate
+                   </a>
+               </div>
+               <ul class="nav flex-column">
+                   <li class="nav-item">
+                       <a class="nav-link" href="{{ url_for('home') }}"><i class="fas fa-home me-2"></i> Home</a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i> Profile</a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link" href="{{ url_for('book') }}"><i class="fas fa-calendar-plus me-2"></i> Book Meals</a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link" href="{{ url_for('history') }}"><i class="fas fa-history me-2"></i> History</a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link" href="{{ url_for('reviews') }}"><i class="fas fa-star me-2"></i> Reviews</a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link" href="{{ url_for('attendance') }}"><i class="fas fa-calendar-check me-2"></i> Attendance</a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link active" href="{{ url_for('fines') }}"><i class="fas fa-money-bill-wave me-2"></i> Fines</a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link" href="{{ url_for('cancel_meal') }}"><i class="fas fa-times-circle me-2"></i> Cancel Meal</a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link" href="{{ url_for('notifications') }}"><i class="fas fa-bell me-2"></i> Notifications 
+                           {% if notifications %}<span class="badge bg-danger">{{ notifications|length }}</span>{% endif %}
+                       </a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+                   </li>
+               </ul>
+           </div>
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Your Fines</h3>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="fas fa-money-bill-wave me-2"></i>Your Fines</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if fines %}
+                                    {% for fine in fines %}
+                                        <div class="fine-item {% if fine.paid %}paid{% endif %}">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-1">Fine for {{ fine.date }} - {{ fine.meal_type }}</h6>
+                                                    <p class="mb-1 text-muted">{{ fine.reason }}</p>
+                                                    <small class="text-muted">Issued on: {{ fine.issued_date }}</small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="badge bg-{% if fine.paid %}success{% else %}danger{% endif %} fs-6">
+                                                        ₹{{ fine.amount }}
+                                                    </span>
+                                                    {% if not fine.paid %}
+                                                        <button class="btn btn-sm btn-outline-primary mt-2 pay-btn" data-fine-id="{{ fine.id }}" data-amount="{{ fine.amount }}">
+                                                            Pay Now
+                                                        </button>
+                                                    {% else %}
+                                                        <span class="badge bg-success mt-2">Paid</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% if not loop.last %}<hr>{% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                                        <h5>No fines at the moment!</h5>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="fas fa-receipt me-2"></i>Payment Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Total Due:</span>
+                                    <strong>₹{{ total_due }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-3">
+                                    <span>Paid:</span>
+                                    <strong>₹{{ paid_amount }}</strong>
+                                </div>
+                                
+                                {% if total_due > 0 %}
+                                    <button id="pay-all-btn" class="btn btn-primary w-100 mb-3">
+                                        Pay All Fines (₹{{ total_due }})
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="booking-policy">
+                            <h5><i class="fas fa-info-circle me-2"></i>Fine Policy</h5>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="fas fa-exclamation-circle text-warning me-2"></i>All fines are calculated daily at 10:00 PM.</li>
+                                <li class="mb-2"><i class="fas fa-exclamation-circle text-warning me-2"></i> Missed meals will incur fines equivalent to the price of the booked items.</li>
+                                <li><i class="fas fa-exclamation-circle text-warning me-2"></i> A fine of ₹50 will be imposed for cancellations made without valid approval.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer positioned below the content -->
+                <footer class="footer">
+                    <div class="container">
+                        <p class="mb-0 footer-content">🍴 MessMate | Indian UA</p>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Make Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="payment-form">
+                        <input type="hidden" id="fine-id" name="fine_id">
+                        <input type="hidden" id="amount" name="amount">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method</label>
+                            <select class="form-select" name="payment_method" id="payment-method">
+                                <option value="">Select payment method</option>
+                                <option value="credit_card">Credit/Debit Card</option>
+                                <option value="upi">UPI</option>
+                                <option value="net_banking">Net Banking</option>
+                                <option value="wallet">Wallet</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Credit Card Details -->
+                        <div class="payment-option" id="credit_card-option">
+                            <div class="mb-3">
+                                <label class="form-label">Card Number</label>
+                                <input type="text" class="form-control" name="card_number" placeholder="1234 5678 9012 3456">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Expiry Date</label>
+                                    <input type="text" class="form-control" name="expiry_date" placeholder="MM/YY">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">CVV</label>
+                                    <input type="text" class="form-control" name="cvv" placeholder="123">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Cardholder Name</label>
+                                <input type="text" class="form-control" name="cardholder_name">
+                            </div>
+                        </div>
+                        
+                        <!-- UPI Details -->
+                        <div class="payment-option" id="upi-option">
+                            <div class="mb-3">
+                                <label class="form-label">UPI ID</label>
+                                <input type="text" class="form-control" name="upi_id" placeholder="yourname@upi">
+                            </div>
+                        </div>
+                        
+                        <!-- Net Banking Details -->
+                        <div class="payment-option" id="net_banking-option">
+                            <div class="mb-3">
+                                <label class="form-label">Select Bank</label>
+                                <select class="form-select" name="bank">
+                                    <option value="">Select your bank</option>
+                                    <option value="sbi">State Bank of India</option>
+                                    <option value="hdfc">HDFC Bank</option>
+                                    <option value="icici">ICICI Bank</option>
+                                    <option value="axis">Axis Bank</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Wallet Details -->
+                        <div class="payment-option" id="wallet-option">
+                            <div class="mb-3">
+                                <label class="form-label">Select Wallet</label>
+                                <select class="form-select" name="wallet">
+                                    <option value="">Select your wallet</option>
+                                    <option value="paytm">Paytm</option>
+                                    <option value="phonepe">PhonePe</option>
+                                    <option value="gpay">Google Pay</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mobile Number</label>
+                                <input type="text" class="form-control" name="mobile" placeholder="10-digit mobile number">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-payment">Confirm Payment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show/hide payment options based on selection
+            document.getElementById('payment-method').addEventListener('change', function() {
+                // Hide all options first
+                document.querySelectorAll('.payment-option').forEach(option => {
+                    option.style.display = 'none';
+                });
+                
+                // Show selected option
+                const selectedOption = this.value + '-option';
+                if (this.value) {
+                    document.getElementById(selectedOption).style.display = 'block';
+                }
+            });
+            
+            // Handle individual fine payment
+            document.querySelectorAll('.pay-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const fineId = this.getAttribute('data-fine-id');
+                    const amount = this.getAttribute('data-amount');
+                    
+                    document.getElementById('fine-id').value = fineId;
+                    document.getElementById('amount').value = amount;
+                    
+                    // Update modal title
+                    document.querySelector('#paymentModal .modal-title').textContent = `Pay Fine: ₹${amount}`;
+                    
+                    // Show modal
+                    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                    paymentModal.show();
+                });
+            });
+            
+            // Handle "Pay All" button
+            document.getElementById('pay-all-btn').addEventListener('click', function() {
+                document.getElementById('fine-id').value = 'all';
+                document.getElementById('amount').value = '{{ total_due }}';
+                
+                // Update modal title
+                document.querySelector('#paymentModal .modal-title').textContent = `Pay All Fines: ₹{{ total_due }}`;
+                
+                // Show modal
+                const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                paymentModal.show();
+            });
+            
+            // Handle payment confirmation
+            document.getElementById('confirm-payment').addEventListener('click', function() {
+                const formData = new FormData(document.getElementById('payment-form'));
+                const paymentMethod = formData.get('payment_method');
+                
+                if (!paymentMethod) {
+                    alert('Please select a payment method');
+                    return;
+                }
+                
+                // Simple validation based on payment method
+                if (paymentMethod === 'credit_card') {
+                    if (!formData.get('card_number') || !formData.get('expiry_date') || 
+                        !formData.get('cvv') || !formData.get('cardholder_name')) {
+                        alert('Please fill all credit card details');
+                        return;
+                    }
+                } else if (paymentMethod === 'upi' && !formData.get('upi_id')) {
+                    alert('Please enter your UPI ID');
+                    return;
+                } else if (paymentMethod === 'net_banking' && !formData.get('bank')) {
+                    alert('Please select your bank');
+                    return;
+                } else if (paymentMethod === 'wallet' && (!formData.get('wallet') || !formData.get('mobile'))) {
+                    alert('Please select wallet and enter mobile number');
+                    return;
+                }
+                
+                // Show loading state
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                this.disabled = true;
+                
+                // Submit payment
+                fetch('{{ url_for("process_payment") }}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert(data.message);
+                        this.innerHTML = 'Confirm Payment';
+                        this.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Payment failed. Please try again.');
+                    this.innerHTML = 'Confirm Payment';
+                    this.disabled = false;
+                });
+            });
+            
+            // Reset form when modal is hidden
+            document.getElementById('paymentModal').addEventListener('hidden.bs.modal', function() {
+                document.getElementById('payment-form').reset();
+                document.querySelectorAll('.payment-option').forEach(option => {
+                    option.style.display = 'none';
+                });
+                
+                // Reset confirm button
+                const confirmBtn = document.getElementById('confirm-payment');
+                confirmBtn.innerHTML = 'Confirm Payment';
+                confirmBtn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Staff Profile - MessMate{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Staff Profile</h3>
+</div>
+
+<div class="profile-container">
+    <div class="profile-header">
+        <h2><i class="fas fa-user me-2"></i>Your Profile</h2>
+        <div class="profile-actions">
+            <a href="{{ url_for('staff_dashboard') }}" class="btn btn-primary"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a>
+            <a href="{{ url_for('staff_logout') }}" class="btn btn-outline-danger"><i class="fas fa-sign-out-alt me-1"></i> Logout</a>
+        </div>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pills-profile-tab" data-bs-toggle="pill" data-bs-target="#pills-profile" type="button" role="tab" aria-controls="pills-profile" aria-selected="true">Profile Information</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pills-password-tab" data-bs-toggle="pill" data-bs-target="#pills-password" type="button" role="tab" aria-controls="pills-password" aria-selected="false">Change Password</button>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="pills-tabContent">
+        <!-- Profile Information Tab -->
+        <div class="tab-pane fade show active" id="pills-profile" role="tabpanel" aria-labelledby="pills-profile-tab">
+            <form method="POST" id="profileForm">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ session.staff_name }}" disabled>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email" value="{{ session.staff_email }}" disabled>
+                    <div class="form-text">Email cannot be changed</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ session.staff_phone or '' }}" disabled>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="role" class="form-label">Role</label>
+                    <input type="text" class="form-control" id="role" value="{{ session.staff_role }}" disabled>
+                    <div class="form-text">Role cannot be changed</div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" id="editProfileBtn"><i class="fas fa-edit me-1"></i> Edit Profile</button>
+                    <button type="submit" class="btn" id="saveProfileBtn" style="display: none;"><i class="fas fa-save me-1"></i> Save Profile</button>
+                    <button type="button" class="btn" id="cancelEditBtn" style="display: none;"><i class="fas fa-times me-1"></i> Cancel</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Change Password Tab -->
+        <div class="tab-pane fade" id="pills-password" role="tabpanel" aria-labelledby="pills-password-tab">
+            <form method="POST" id="passwordForm">
+                <div class="mb-3">
+                    <label for="current_password" class="form-label">Current Password</label>
+                    <input type="password" class="form-control" id="current_password" name="current_password" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="new_password" class="form-label">New Password</label>
+                    <input type="password" class="form-control" id="new_password" name="new_password" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="confirm_password" class="form-label">Confirm New Password</label>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary"><i class="fas fa-key me-1"></i> Change Password</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        const saveProfileBtn = document.getElementById('saveProfileBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const profileForm = document.getElementById('profileForm');
+        const formFields = profileForm.querySelectorAll('input, select');
+        
+        let originalValues = {};
+        
+        // Store original values
+        formFields.forEach(field => {
+            if (field.id !== 'email' && field.id !== 'role') {
+                originalValues[field.id] = field.value;
+            }
+        });
+        
+        editProfileBtn.addEventListener('click', function() {
+            formFields.forEach(field => {
+                if (field.id !== 'email' && field.id !== 'role') {
+                    field.disabled = false;
+                }
+            });
+            editProfileBtn.style.display = 'none';
+            saveProfileBtn.style.display = 'block';
+            cancelEditBtn.style.display = 'block';
+        });
+        
+        cancelEditBtn.addEventListener('click', function() {
+            formFields.forEach(field => {
+                if (field.id !== 'email' && field.id !== 'role') {
+                    field.disabled = true;
+                    field.value = originalValues[field.id];
+                }
+            });
+            editProfileBtn.style.display = 'block';
+            saveProfileBtn.style.display = 'none';
+            cancelEditBtn.style.display = 'none';
+        });
+        
+        profileForm.addEventListener('submit', function(e) {
+            formFields.forEach(field => {
+                if (field.id !== 'email' && field.id !== 'role') {
+                    field.disabled = false;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

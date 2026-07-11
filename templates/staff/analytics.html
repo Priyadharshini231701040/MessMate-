@@ -1,0 +1,386 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Analytics & Reports - MessMate Staff{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Analytics & Reports</h3>
+    <div class="d-flex gap-2">
+        <select class="form-select" onchange="updateAnalytics(this.value)">
+            <option value="weekly" {% if selected_period == 'weekly' %}selected{% endif %}>This Week</option>
+            <option value="monthly" {% if selected_period == 'monthly' %}selected{% endif %}>This Month</option>
+            <option value="yearly" {% if selected_period == 'yearly' %}selected{% endif %}>This Year</option>
+        </select>
+        <button class="btn btn-outline-primary" onclick="exportReport()">
+            <i class="fas fa-download me-1"></i> Export Report
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Key Metrics -->
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-utensils fa-2x text-primary mb-2"></i>
+                <div class="stats-number text-primary">{{ analytics_data.key_metrics.total_meals }}</div>
+                <small class="text-muted">Total Meals Served</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-money-bill-wave fa-2x text-success mb-2"></i>
+                <div class="stats-number text-success">₹{{ analytics_data.key_metrics.fine_revenue }}</div>
+                <small class="text-muted">Fine Revenue</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-times-circle fa-2x text-warning mb-2"></i>
+                <div class="stats-number text-warning">{{ analytics_data.key_metrics.cancellations }}</div>
+                <small class="text-muted">Cancellations</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-star fa-2x text-info mb-2"></i>
+                <div class="stats-number text-info">{{ analytics_data.key_metrics.average_rating }}/5</div>
+                <small class="text-muted">Average Rating</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Meal Popularity -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Meal Popularity</h5>
+                <div>
+                    <select class="form-select form-select-sm" id="mealTypeFilter" onchange="updateMealPopularityChart()" style="width: 120px;">
+                        <option value="all">All Meals</option>
+                        <option value="breakfast">Breakfast</option>
+                        <option value="lunch">Lunch</option>
+                        <option value="dinner">Dinner</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="mealPopularityChart" width="400" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Distribution -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Booking Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="bookingDistributionChart" width="400" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Attendance Trends -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i>Attendance Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="attendanceTrendsChart" width="400" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Food Wastage Trends -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-trash me-2"></i>Food Wastage Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="wastageTrendsChart" width="400" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-table me-2"></i>Detailed Reports</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <input type="date" class="form-control" id="reportDate" 
+                           value="{{ selected_date }}" onchange="updateDetailedReport()" 
+                           style="width: 200px; display: inline-block;">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Breakfast</th>
+                                <th>Lunch</th>
+                                <th>Dinner</th>
+                                <th>Revenue</th>
+                                <th>Cancellations</th>
+                                <th>Wastage (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailedReportsBody">
+                            {% for report in analytics_data.detailed_reports %}
+                            <tr>
+                                <td>{{ report.date }}</td>
+                                <td>{{ report.breakfast }}</td>
+                                <td>{{ report.lunch }}</td>
+                                <td>{{ report.dinner }}</td>
+                                <td>₹{{ report.revenue }}</td>
+                                <td>{{ report.cancellations }}</td>
+                                <td>{{ report.wastage }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Global chart variables
+let mealChart, bookingChart, attendanceChart, wastageChart;
+
+function updateAnalytics(period) {
+    window.location.href = `{{ url_for('staff_analytics') }}?period=${period}`;
+}
+
+function exportReport() {
+    alert(`Exporting {{ selected_period }} analytics report...`);
+}
+
+function updateDetailedReport() {
+    const date = document.getElementById('reportDate').value;
+    // Only update detailed reports via AJAX, don't reload the entire page
+    fetch(`/staff/get_detailed_report?date=${date}`)
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('detailedReportsBody');
+            tbody.innerHTML = '';
+            
+            data.reports.forEach(report => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${report.date}</td>
+                    <td>${report.breakfast}</td>
+                    <td>${report.lunch}</td>
+                    <td>${report.dinner}</td>
+                    <td>₹${report.revenue}</td>
+                    <td>${report.cancellations}</td>
+                    <td>${report.wastage}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        })
+        .catch(error => {
+            console.error('Error updating detailed report:', error);
+            alert('Error loading detailed report');
+        });
+}
+
+function updateMealPopularityChart() {
+    const mealType = document.getElementById('mealTypeFilter').value;
+    const period = '{{ selected_period }}';
+    
+    // Fetch filtered data from server
+    fetch(`/staff/get_meal_popularity?period=${period}&meal_type=${mealType}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update the meal popularity chart with new data
+            mealChart.data.labels = data.labels;
+            mealChart.data.datasets[0].data = data.data;
+            mealChart.update();
+        })
+        .catch(error => {
+            console.error('Error updating meal popularity:', error);
+        });
+}
+
+// Initialize charts
+document.addEventListener('DOMContentLoaded', function() {
+    // Meal Popularity Chart
+    const mealCtx = document.getElementById('mealPopularityChart').getContext('2d');
+    mealChart = new Chart(mealCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ analytics_data.meal_popularity.labels|tojson }},
+            datasets: [{
+                data: {{ analytics_data.meal_popularity.data|tojson }},
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 159, 64, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false // Remove the legend
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Bookings'
+                    },
+                    ticks: {
+                        stepSize: 1,
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+
+    // Booking Distribution Chart
+    const bookingCtx = document.getElementById('bookingDistributionChart').getContext('2d');
+    bookingChart = new Chart(bookingCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ analytics_data.booking_distribution.labels|tojson }},
+            datasets: [{
+                data: {{ analytics_data.booking_distribution.data|tojson }},
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+
+    // Attendance Trends Chart
+    const attendanceCtx = document.getElementById('attendanceTrendsChart').getContext('2d');
+    attendanceChart = new Chart(attendanceCtx, {
+        type: 'line',
+        data: {
+            labels: {{ analytics_data.attendance_trends.labels|tojson }},
+            datasets: [
+                {
+                    label: 'Present',
+                    data: {{ analytics_data.attendance_trends.present|tojson }},
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Absent',
+                    data: {{ analytics_data.attendance_trends.absent|tojson }},
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Not Scanned',
+                    data: {{ analytics_data.attendance_trends.not_scanned|tojson }},
+                    borderColor: 'rgba(255, 205, 86, 1)',
+                    backgroundColor: 'rgba(255, 205, 86, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Students'
+                    },
+                    ticks: {
+                        stepSize: 1,
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+
+    // Wastage Trends Chart
+    const wastageCtx = document.getElementById('wastageTrendsChart').getContext('2d');
+    wastageChart = new Chart(wastageCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ analytics_data.wastage_trends.labels|tojson }},
+            datasets: [{
+                label: 'Food Wastage (kg)',
+                data: {{ analytics_data.wastage_trends.data|tojson }},
+                backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Kilograms (kg)'
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

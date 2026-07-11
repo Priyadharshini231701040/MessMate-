@@ -1,0 +1,362 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Dashboard - MessMate Staff{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Dashboard</h3>
+    <span class="badge fs-6" style="background-color: #3498db; color: white;">Welcome, {{ session.staff_role|title }}  🤖</span>
+</div>
+
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Statistics Cards -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <i class="fas fa-users fa-2x text-primary"></i>
+                <div class="stats-number text-primary">{{ stats.total_students }}</div>
+                <p class="text-muted">Total Students</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <i class="fas fa-calendar-check fa-2x text-success"></i>
+                <div class="stats-number text-success">{{ stats.today_bookings }}</div>
+                <p class="text-muted">Today's Bookings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <i class="fas fa-times-circle fa-2x text-warning"></i>
+                <div class="stats-number text-warning">{{ stats.pending_cancellations }}</div>
+                <p class="text-muted">Pending Cancellations</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <i class="fas fa-money-bill-wave fa-2x text-danger"></i>
+                <div class="stats-number text-danger">{{ stats.unpaid_fines_count }}</div>
+                <p class="text-muted">Students with Unpaid Fines</p>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Recent Activities -->
+<div class="row mt-4">
+    <!-- Recent Bookings -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>{{ activities.booking_title }}</h5>
+            </div>
+            <div class="card-body">
+                {% if activities.recent_bookings %}
+                    {% for booking in activities.recent_bookings %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ booking[0] }}</strong>
+                                <small class="text-muted d-block">{{ booking[2] }} - {{ booking[3] }}</small>
+                                <small class="text-muted">{{ booking[1] }}</small>
+                            </div>
+                            <span class="badge bg-primary">{{ booking[2] }}</span>
+                        </div>
+                        {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">No recent bookings</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Fines -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Recent Fines</h5>
+            </div>
+            <div class="card-body">
+                {% if activities.recent_fines %}
+                    {% for fine in activities.recent_fines %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ fine[0] }}</strong>
+                                <small class="text-muted d-block">{{ fine[2] }} - {{ fine[1] }}</small>
+                            </div>
+                            <span class="badge bg-danger">₹{{ fine[3] }}</span>
+                        </div>
+                        {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">No recent fines</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Cancellations -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-ban me-2"></i>Recent Cancellations</h5>
+            </div>
+            <div class="card-body">
+                {% if activities.recent_cancellations %}
+                    {% for cancellation in activities.recent_cancellations %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ cancellation[0] }}</strong>
+                                <small class="text-muted d-block">{{ cancellation[2] }} - {{ cancellation[1] }}</small>
+                                <small class="text-muted">{{ cancellation[3] or 'No reason' }}</small>
+                            </div>
+                            <span class="badge bg-warning">Cancelled</span>
+                        </div>
+                        {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">No recent cancellations</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mt-4">
+    <!-- Wastage Chart -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-trash me-2"></i>Today's Food Wastage (kg)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="wastageChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Chart -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Today's Attendance Status</h5>
+                <div class="btn-group btn-group-sm attendance-filter">
+                    <button class="btn btn-white border active" data-meal="all">All Meals</button>
+                    <button class="btn btn-white border" data-meal="breakfast">Breakfast</button>
+                    <button class="btn btn-white border" data-meal="lunch">Lunch</button>
+                    <button class="btn btn-white border" data-meal="dinner">Dinner</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="attendanceChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Wastage Chart
+const wastageCtx = document.getElementById('wastageChart').getContext('2d');
+const wastageChart = new Chart(wastageCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Breakfast', 'Lunch', 'Dinner'],
+        datasets: [{
+            label: 'Food Wastage (kg)',
+            data: [{{ wastage_data.breakfast }}, {{ wastage_data.lunch }}, {{ wastage_data.dinner }}],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Kilograms (kg)'
+                }
+            }
+        }
+    }
+});
+
+// Attendance Chart
+const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+let attendanceChart;
+
+function updateAttendanceChart(mealType = 'all') {
+    let data, labels, backgroundColor, borderColor;
+    
+    if (mealType === 'all') {
+        labels = ['Present', 'Absent', 'Not Scanned'];
+        data = [
+            {{ attendance_stats.present }},
+            {{ attendance_stats.absent }},
+            {{ attendance_stats.not_scanned }}
+        ];
+        backgroundColor = [
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(255, 205, 86, 0.8)'
+        ];
+        borderColor = [
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 99, 132, 1)',
+            'rgba(255, 205, 86, 1)'
+        ];
+    } else {
+        labels = ['Present', 'Absent', 'Not Scanned'];
+        const mealData = {{ attendance_stats|tojson }};
+        
+        // Calculate not scanned for individual meals
+        let present, absent, notScanned;
+        
+        if (mealType === 'breakfast') {
+            present = mealData.breakfast.present;
+            absent = mealData.breakfast.absent;
+            // Calculate not scanned for breakfast
+            notScanned = Math.max(0, (mealData.present + mealData.absent + mealData.not_scanned) / 3 - (present + absent));
+        } else if (mealType === 'lunch') {
+            present = mealData.lunch.present;
+            absent = mealData.lunch.absent;
+            // Calculate not scanned for lunch
+            notScanned = Math.max(0, (mealData.present + mealData.absent + mealData.not_scanned) / 3 - (present + absent));
+        } else if (mealType === 'dinner') {
+            present = mealData.dinner.present;
+            absent = mealData.dinner.absent;
+            // Calculate not scanned for dinner
+            notScanned = Math.max(0, (mealData.present + mealData.absent + mealData.not_scanned) / 3 - (present + absent));
+        }
+        
+        data = [present, absent, Math.round(notScanned)];
+        backgroundColor = [
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(255, 205, 86, 0.8)'
+        ];
+        borderColor = [
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 99, 132, 1)',
+            'rgba(255, 205, 86, 1)'
+        ];
+    }
+    
+    if (attendanceChart) {
+        attendanceChart.destroy();
+    }
+    
+    attendanceChart = new Chart(attendanceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColor,
+                borderColor: borderColor,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Initialize with all meals
+updateAttendanceChart();
+
+// Meal type buttons
+document.querySelectorAll('[data-meal]').forEach(button => {
+    button.addEventListener('click', function() {
+        document.querySelectorAll('[data-meal]').forEach(btn => {
+            btn.classList.remove('active', 'btn-primary');
+            btn.classList.add('btn-white', 'border');
+        });
+        this.classList.remove('btn-white', 'border');
+        this.classList.add('active', 'btn-primary');
+        updateAttendanceChart(this.dataset.meal);
+    });
+});
+
+// Add some custom CSS for better button styling
+const style = document.createElement('style');
+style.textContent = `
+    .attendance-filter .btn {
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    .attendance-filter .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .attendance-filter .btn.active {
+        font-weight: 600;
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+<style>
+.attendance-filter .btn-white {
+    background-color: white;
+    color: #495057;
+}
+.attendance-filter .btn-white:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}
+.attendance-filter .btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+</style>
+{% endblock %}

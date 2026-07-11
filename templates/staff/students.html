@@ -1,0 +1,278 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Student Management - MessMate Staff{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Student Management</h3>
+    <div class="d-flex gap-2">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search students..." style="width: 250px;">
+        <button class="btn btn-outline-primary" onclick="filterStudents()">
+            <i class="fas fa-search me-1"></i> Search
+        </button>
+    </div>
+</div>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i>All Students ({{ students|length }})</h5>
+    </div>
+    <div class="card-body">
+        {% if students %}
+            <div class="table-responsive">
+                <table class="table table-striped" id="studentsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Hostel</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student[0] }}</td>
+                            <td>
+                                <strong>{{ student[1] }}</strong>
+                            </td>
+                            <td>{{ student[2] }}</td>
+                            <td>{{ student[3] }}</td>
+                            <td>
+                                <span class="badge {% if student[4] == 'Female' %}bg-danger{% else %}bg-primary{% endif %}">
+                                    {{ student[4] }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="viewStudentDetails({{ student[0] }})"
+                                        data-bs-toggle="tooltip" title="View Statistics">
+                                    <i class="fas fa-chart-bar"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" 
+                                        onclick="viewStudentBookings({{ student[0] }})"
+                                        data-bs-toggle="tooltip" title="View Bookings">
+                                    <i class="fas fa-calendar"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-users text-muted fa-3x mb-3"></i>
+                <h5>No Students Found</h5>
+                <p class="text-muted">There are no registered students in the system.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Student Details Modal -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Student Statistics & Activity</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="studentModalBody">
+                <!-- Content loaded via JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterStudents() {
+    const input = document.getElementById('searchInput');
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById('studentsTable');
+    const tr = table.getElementsByTagName('tr');
+    
+    for (let i = 1; i < tr.length; i++) {
+        const td = tr[i].getElementsByTagName('td');
+        let found = false;
+        
+        for (let j = 0; j < td.length; j++) {
+            if (td[j]) {
+                if (td[j].textContent.toLowerCase().indexOf(filter) > -1) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        
+        tr[i].style.display = found ? '' : 'none';
+    }
+}
+
+function viewStudentDetails(studentId) {
+    console.log('Loading statistics for student:', studentId);
+    
+    const modalBody = document.getElementById('studentModalBody');
+    modalBody.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading student statistics...</p>
+        </div>
+    `;
+    
+    // Fetch actual student statistics via AJAX
+    fetch(`/staff/get_student_statistics/${studentId}`)
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received data:', data);
+            if (data.success) {
+                const stats = data.stats;
+                const recentActivity = data.recent_activity;
+                
+                modalBody.innerHTML = `
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="fas fa-chart-line me-2"></i>Statistics</h6>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted">Total Bookings</small>
+                                            <div class="fw-bold">${stats.total_bookings}</div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted">Meals Attended</small>
+                                            <div class="fw-bold">${stats.meals_attended}</div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted">Cancellations</small>
+                                            <div class="fw-bold">${stats.cancellations}</div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted">Total Fines</small>
+                                            <div class="fw-bold">₹${stats.total_fines}</div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted">Fines Paid</small>
+                                            <div class="fw-bold">₹${stats.fines_paid}</div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted">Remaining Balance</small>
+                                            <div class="fw-bold text-danger">₹${stats.remaining_balance}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="fas fa-percentage me-2"></i>Attendance Rate</h6>
+                                    <div class="text-center py-3">
+                                        <div class="display-4 text-primary">${stats.attendance_rate}%</div>
+                                        <small class="text-muted">Overall Meal Attendance</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6><i class="fas fa-history me-2"></i>Recent Activity</h6>
+                        <div class="list-group">
+                            ${recentActivity.length > 0 ? 
+                                recentActivity.map(activity => `
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <small class="text-muted">${activity.date}</small>
+                                            <span class="badge ${activity.type === 'booking' ? 'bg-success' : activity.type === 'cancellation' ? 'bg-warning' : 'bg-danger'}">
+                                                ${activity.type}
+                                            </span>
+                                        </div>
+                                        <p class="mb-1">${activity.description}</p>
+                                    </div>
+                                `).join('') : 
+                                '<div class="text-center text-muted py-3">No recent activity found</div>'
+                            }
+                        </div>
+                    </div>
+                `;
+            } else {
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error loading student statistics: ${data.error || 'Unknown error'}
+                    </div>
+                    <div class="text-center">
+                        <p class="text-muted">Please try again or contact support if the issue persists.</p>
+                        <button class="btn btn-primary" onclick="viewStudentDetails(${studentId})">
+                            <i class="fas fa-redo me-1"></i> Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Network error loading student statistics: ${error.message}
+                </div>
+                <div class="text-center">
+                    <p class="text-muted">Please check your connection and try again.</p>
+                    <button class="btn btn-primary" onclick="viewStudentDetails(${studentId})">
+                        <i class="fas fa-redo me-1"></i> Try Again
+                    </button>
+                </div>
+            `;
+        });
+    
+    const modal = new bootstrap.Modal(document.getElementById('studentModal'));
+    modal.show();
+}
+
+function viewStudentBookings(studentId) {
+    // For now, just show a message since we don't have a dedicated bookings page
+    alert(`View bookings for student ${studentId} - This feature is not yet implemented`);
+    // window.location.href = `/staff/student_bookings/${studentId}`;
+}
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Enable search on enter key
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            filterStudents();
+        }
+    });
+});
+</script>
+{% endblock %}

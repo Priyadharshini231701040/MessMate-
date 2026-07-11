@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking History - MessMate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background-color: #2c3e50;
+            min-height: 100vh;
+            padding-top: 20px;
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 15px 20px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #3498db;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        .card-header {
+            background-color: #3498db;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .badge {
+            font-size: 0.8em;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            color: rgb(0, 0, 0);
+            padding: 10px 0;
+            text-align: center;
+            margin-top: 30px;
+        }
+        .status-present { 
+            color: #28a745; 
+            font-weight: bold; 
+        }
+        .status-absent { 
+            color: #dc3545; 
+            font-weight: bold; 
+        }
+        .status-notscanned { 
+            color: #fd7e14; 
+            font-weight: bold; 
+        }
+        .status-future { 
+            color: #3498db; 
+            font-weight: bold; 
+        }
+        .status-notbooked { 
+            color: #6c757d; 
+            font-weight: bold; 
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .date-selector {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        .date-navigation {
+            display: flex;
+            align-items: end;
+            gap: 20px;
+        }
+        .date-input-container {
+            flex: 0 0 220px;
+        }
+        .nav-buttons-container {
+            flex: 1;
+        }
+        .nav-btn {
+            min-width: 130px;
+            flex: 1;
+            padding: 10px 15px;
+            font-weight: 500;
+        }
+        .no-bookings {
+            text-align: center;
+            padding: 50px 20px;
+            color: #6c757d;
+        }
+        .qr-code-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .selected-date-display {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        .meal-icon {
+            width: 24px;
+            text-align: center;
+            margin-right: 10px;
+        }
+        .booked-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border: none;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .booked-item:last-child {
+            border-bottom: none;
+        }
+
+        /* For mobile responsiveness */
+        @media (max-width: 768px) {
+            .date-navigation {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            .date-input-container {
+                flex: none;
+            }
+            .nav-btn {
+                min-width: auto;
+            }
+            .selected-date-display {
+                padding: 20px 15px;
+            }
+            .date-selector {
+                padding: 20px 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .btn-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .nav-btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar Navigation -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="text-center mb-4">
+                    <a href="{{ url_for('home') }}" class="navbar-brand text-white">
+                        <i class="fas fa-utensils me-2"></i> MessMate
+                    </a>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('home') }}"><i class="fas fa-home me-2"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i> Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('book') }}"><i class="fas fa-calendar-plus me-2"></i> Book Meals</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('history') }}"><i class="fas fa-history me-2"></i> History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reviews') }}"><i class="fas fa-star me-2"></i> Reviews</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('attendance') }}"><i class="fas fa-calendar-check me-2"></i> Attendance</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('fines') }}"><i class="fas fa-money-bill-wave me-2"></i> Fines</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('cancel_meal') }}"><i class="fas fa-times-circle me-2"></i> Cancel Meal</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('notifications') }}"><i class="fas fa-bell me-2"></i> Notifications 
+                        {% if notifications %}<span class="badge bg-danger">{{ notifications|length }}</span>{% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="fas fa-history me-2"></i>Booking History</h3>
+                </div>
+
+                <!-- Simple Date Selector -->
+                <div class="date-selector">
+                    <h5 class="mb-4"><i class="fas fa-calendar-alt me-2"></i>Select Date to View Bookings</h5>
+                    <div class="date-navigation">
+                        <div class="date-input-container">
+                            <label for="datePicker" class="form-label fw-semibold">Choose Date</label>
+                            <input type="date" id="datePicker" class="form-control form-control-lg" value="{{ selected_date }}">
+                        </div>
+                        <div class="nav-buttons-container">
+                            <label class="form-label fw-semibold">Quick Navigation</label>
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-primary nav-btn" onclick="goToYesterday()">
+                                    <i class="fas fa-chevron-left me-2"></i>Yesterday
+                                </button>
+                                <button type="button" class="btn btn-primary nav-btn" onclick="goToToday()">
+                                    <i class="fas fa-calendar-day me-2"></i>Today
+                                </button>
+                                <button type="button" class="btn btn-outline-primary nav-btn" onclick="goToTomorrow()">
+                                    Tomorrow<i class="fas fa-chevron-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Date Display -->
+                <div class="selected-date-display">
+                    <h3 id="selectedDateHeader" class="mb-0 fw-bold"></h3>
+                </div>
+
+                <!-- Bookings for Selected Date -->
+                <div id="bookingsContainer">
+                    {% if selected_date_bookings %}
+                        {% for meal in ['Breakfast','Lunch','Dinner'] %}
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-{% if meal == 'Breakfast' %}sun{% elif meal == 'Lunch' %}utensils{% else %}moon{% endif %} me-2"></i>
+                                        {{ meal }}
+                                    </h5>
+                                    <span class="badge bg-{% if selected_date_bookings[meal]['food_items'] %}success{% else %}secondary{% endif %} bg-opacity-25 fs-6">
+                                        {% if selected_date_bookings[meal]['food_items'] %}
+                                            {{ selected_date_bookings[meal]['food_items']|length }} item(s)
+                                        {% else %}
+                                            Not Booked
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    {% if selected_date_bookings[meal]['food_items'] %}
+                                        <h6 class="text-muted mb-3"><i class="fas fa-list me-2"></i>Booked Items:</h6>
+                                        <ul class="list-group list-group-flush">
+                                            {% for item in selected_date_bookings[meal]['food_items'] %}
+                                                <li class="booked-item">
+                                                    <span class="fw-medium">{{ item }}</span>
+                                                    <span class="badge bg-success rounded-pill">Booked</span>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                        <div class="mt-4 p-3 bg-light rounded">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <p class="mb-2"><strong><i class="fas fa-info-circle me-2"></i>Status:</strong></p>
+                                                    <span class="{% if selected_date_bookings[meal]['status'] == 'Present' %}status-present{% elif selected_date_bookings[meal]['status'] == 'Absent' %}status-absent{% elif selected_date_bookings[meal]['status'] == 'Not Scanned' %}status-notscanned{% elif selected_date > today_str %}status-future{% else %}status-notscanned{% endif %} fs-5">
+                                                        <i class="fas fa-{% if selected_date_bookings[meal]['status'] == 'Present' %}check-circle{% elif selected_date_bookings[meal]['status'] == 'Absent' %}times-circle{% elif selected_date_bookings[meal]['status'] == 'Not Scanned' %}clock{% elif selected_date > today_str %}calendar-plus{% else %}clock{% endif %} me-2"></i>
+                                                        {{ selected_date_bookings[meal]['status'] }}
+                                                    </span>
+                                                </div>
+                                                
+                                                {% if selected_date_bookings[meal]['food_items'] and selected_date <= tomorrow_str %}
+                                                <div class="col-md-6">
+                                                    <div class="qr-code-container">
+                                                        <p class="text-muted mb-3"><strong><i class="fas fa-qrcode me-2"></i>QR Code for Mess:</strong></p>
+                                                        <img src="data:image/png;base64,{{ selected_date_qr[meal] }}" width="180" alt="QR Code" class="border rounded p-3 bg-white shadow-sm">
+                                                        <p class="text-muted mt-3 small">
+                                                            <i class="fas fa-info-circle me-1"></i>
+                                                            Show this QR code at the mess counter
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="text-center py-5">
+                                            <i class="fas fa-utensils fa-3x text-muted mb-3 opacity-50"></i>
+                                            <p class="text-muted mb-2 fs-5">No items booked for {{ meal }}</p>
+                                            <p class="mb-0"><strong>Status:</strong> <span class="status-notbooked fs-5">Not Booked</span></p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-bookings">
+                            <i class="fas fa-calendar-times fa-4x mb-4 text-muted opacity-50"></i>
+                            <h4 class="text-muted">No Bookings Found</h4>
+                            <p class="text-muted fs-5">No bookings available for the selected date.</p>
+                            <button class="btn btn-primary mt-3" onclick="goToToday()">
+                                <i class="fas fa-calendar-plus me-2"></i>Book Today's Meals
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <footer class="footer mt-5">
+                    <div class="container">
+                        <p class="mb-0">{{ footer_symbol }}</p>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const todayStr = "{{ today_str }}";
+        const selectedDate = "{{ selected_date }}";
+        const tomorrowStr = "{{ tomorrow_str }}";
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateHeader();
+            
+            // Set up date picker change event
+            document.getElementById('datePicker').addEventListener('change', function() {
+                window.location.href = `/history?date=${this.value}`;
+            });
+
+            // Set min/max dates for date picker (optional: limit to reasonable range)
+            const datePicker = document.getElementById('datePicker');
+            const today = new Date();
+            const minDate = new Date();
+            minDate.setMonth(today.getMonth() - 1); // One month ago
+            const maxDate = new Date();
+            maxDate.setMonth(today.getMonth() + 1); // One month ahead
+            
+            datePicker.min = minDate.toISOString().split('T')[0];
+            datePicker.max = maxDate.toISOString().split('T')[0];
+        });
+
+        function updateDateHeader() {
+            const date = new Date(selectedDate);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = date.toLocaleDateString('en-US', options);
+            document.getElementById('selectedDateHeader').innerHTML = 
+                `<i class="fas fa-calendar-check me-2"></i>${formattedDate}`;
+        }
+
+        function goToYesterday() {
+            const currentDate = new Date(selectedDate);
+            currentDate.setDate(currentDate.getDate() - 1);
+            const newDateStr = currentDate.toISOString().split('T')[0];
+            window.location.href = `/history?date=${newDateStr}`;
+        }
+
+        function goToToday() {
+            window.location.href = `/history?date=${todayStr}`;
+        }
+
+        function goToTomorrow() {
+            const currentDate = new Date(selectedDate);
+            currentDate.setDate(currentDate.getDate() + 1);
+            const newDateStr = currentDate.toISOString().split('T')[0];
+            window.location.href = `/history?date=${newDateStr}`;
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.target.tagName !== 'INPUT') {
+                if (event.key === 'ArrowLeft') {
+                    goToYesterday();
+                } else if (event.key === 'ArrowRight') {
+                    goToTomorrow();
+                } else if (event.key === 't' || event.key === 'T') {
+                    goToToday();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

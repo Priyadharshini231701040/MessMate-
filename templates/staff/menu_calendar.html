@@ -1,0 +1,469 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Menu Management - MessMate Staff{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-calendar-alt me-2"></i>Menu Management
+        </h1>
+    </div>
+
+    <div class="row">
+        <!-- Calendar View - Left Side -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-calendar me-1"></i>
+                        {{ current_month.strftime('%B %Y') }}
+                    </h6>
+                    <div class="btn-group">
+                        <a href="{{ url_for('staff_menu_calendar', year=prev_year, month=prev_month, date=selected_date) }}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-chevron-left"></i> Prev
+                        </a>
+                        <a href="{{ url_for('staff_menu_calendar', year=date.today().year, month=date.today().month) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            Current Month
+                        </a>
+                        <a href="{{ url_for('staff_menu_calendar', year=next_year, month=next_year, date=selected_date) }}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center">Sun</th>
+                                    <th class="text-center">Mon</th>
+                                    <th class="text-center">Tue</th>
+                                    <th class="text-center">Wed</th>
+                                    <th class="text-center">Thu</th>
+                                    <th class="text-center">Fri</th>
+                                    <th class="text-center">Sat</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set month_days = calendar.monthcalendar(current_year, current_month_num) %}
+                                {% for week in month_days %}
+                                <tr>
+                                    {% for day in week %}
+                                    <td class="text-center {% if day == 0 %}bg-light{% else %}calendar-day{% endif %}" 
+                                        style="height: 100px; vertical-align: top; position: relative; cursor: pointer;"
+                                        onclick="selectDate('{{ '%04d-%02d-%02d'|format(current_year, current_month_num, day) if day != 0 }}')">
+                                        {% if day != 0 %}
+                                        {% set current_date = '%04d-%02d-%02d'|format(current_year, current_month_num, day) %}
+                                        {% set day_menu = menu_history.get(current_date, {}) %}
+                                        
+                                        <div class="d-flex flex-column h-100 p-1">
+                                            <!-- Date Number -->
+                                            <div class="mb-1">
+                                                <span class="{% if current_date == selected_date %}badge bg-primary{% elif current_date == date.today().isoformat() %}badge bg-success{% else %}text-dark{% endif %} fw-bold">
+                                                    {{ day }}
+                                                </span>
+                                                {% if current_date == date.today().isoformat() %}
+                                                <small class="badge bg-success">Today</small>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <!-- Menu Status -->
+                                            <div class="flex-grow-1 small text-center">
+                                                {% if day_menu.breakfast and day_menu.breakfast|length > 0 %}
+                                                <div class="text-primary mb-1" style="color: #3498db !important;">
+                                                    <small>B: {{ day_menu.breakfast|length }} items</small>
+                                                </div>
+                                                {% else %}
+                                                <div class="text-muted mb-1">
+                                                    <small>B: No menu</small>
+                                                </div>
+                                                {% endif %}
+                                                
+                                                {% if day_menu.lunch and day_menu.lunch|length > 0 %}
+                                                <div class="text-warning mb-1">
+                                                    <small>L: {{ day_menu.lunch|length }} items</small>
+                                                </div>
+                                                {% else %}
+                                                <div class="text-muted mb-1">
+                                                    <small>L: No menu</small>
+                                                {% endif %}
+                                                
+                                                {% if day_menu.dinner and day_menu.dinner|length > 0 %}
+                                                <div class="text-info">
+                                                    <small>D: {{ day_menu.dinner|length }} items</small>
+                                                </div>
+                                                {% else %}
+                                                <div class="text-muted">
+                                                    <small>D: No menu</small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Menu Summary - Right Side -->
+        <div class="col-lg-4">
+            <div class="card border-primary mb-4">
+                <div class="card-header text-white" style="background-color: #3498db;">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-list me-1"></i>Current Menu - {{ selected_date }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if menu.breakfast or menu.lunch or menu.dinner %}
+                        {% if menu.breakfast %}
+                        <div class="mb-3">
+                            <strong class="text-primary" style="color: #3498db !important;">Breakfast:</strong>
+                            <span class="badge float-end text-white" style="background-color: #3498db;">{{ menu.breakfast|length }} items</span>
+                            <div class="small text-muted mt-1">{{ menu.breakfast|join(', ') }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if menu.lunch %}
+                        <div class="mb-3">
+                            <strong class="text-warning">Lunch:</strong>
+                            <span class="badge bg-warning float-end">{{ menu.lunch|length }} items</span>
+                            <div class="small text-muted mt-1">{{ menu.lunch|join(', ') }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if menu.dinner %}
+                        <div class="mb-3">
+                            <strong class="text-info">Dinner:</strong>
+                            <span class="badge bg-info float-end">{{ menu.dinner|length }} items</span>
+                            <div class="small text-muted mt-1">{{ menu.dinner|join(', ') }}</div>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-utensils fa-2x mb-2"></i>
+                            <p>No menu set for this date</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Menu Editor Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-edit me-1"></i>
+                        Menu Editor - {{ selected_date }}
+                    </h6>
+                    <div class="form-group mb-0">
+                        <input type="date" id="dateSelector" class="form-control form-control-sm" 
+                               value="{{ selected_date }}" onchange="changeDate(this.value)">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('save_menu') }}" id="menuForm">
+                        <input type="hidden" name="date" value="{{ selected_date }}" id="selectedDate">
+                        
+                        <!-- Breakfast Section -->
+                        <div class="mb-4">
+                            <h6 class="mb-2" style="color: #3498db;">
+                                <i class="fas fa-egg me-1"></i>Breakfast
+                                <span class="badge float-end text-white" style="background-color: #3498db;" id="breakfast-count">{{ menu.breakfast|length }} items</span>
+                            </h6>
+                            <div id="breakfast-items">
+                                {% for item in menu.breakfast %}
+                                <div class="input-group mb-2">
+                                    <input type="text" name="breakfast_items[]" class="form-control form-control-sm" 
+                                           value="{{ item }}" placeholder="Breakfast item" oninput="updateSummary()">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                {% if menu.breakfast|length == 0 %}
+                                <div class="input-group mb-2">
+                                    <input type="text" name="breakfast_items[]" class="form-control form-control-sm" 
+                                           placeholder="Breakfast item" oninput="updateSummary()">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary add-item" data-target="breakfast" style="border-color: #3498db; color: #3498db;">
+                                <i class="fas fa-plus me-1"></i>Add Breakfast Item
+                            </button>
+                        </div>
+
+                        <!-- Lunch Section -->
+                        <div class="mb-4">
+                            <h6 class="text-warning mb-2">
+                                <i class="fas fa-utensils me-1"></i>Lunch
+                                <span class="badge bg-warning float-end" id="lunch-count">{{ menu.lunch|length }} items</span>
+                            </h6>
+                            <div id="lunch-items">
+                                {% for item in menu.lunch %}
+                                <div class="input-group mb-2">
+                                    <input type="text" name="lunch_items[]" class="form-control form-control-sm" 
+                                           value="{{ item }}" placeholder="Lunch item" oninput="updateSummary()">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                {% if menu.lunch|length == 0 %}
+                                <div class="input-group mb-2">
+                                    <input type="text" name="lunch_items[]" class="form-control form-control-sm" 
+                                           placeholder="Lunch item" oninput="updateSummary()">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-warning add-item" data-target="lunch">
+                                <i class="fas fa-plus me-1"></i>Add Lunch Item
+                            </button>
+                        </div>
+
+                        <!-- Dinner Section -->
+                        <div class="mb-4">
+                            <h6 class="text-info mb-2">
+                                <i class="fas fa-moon me-1"></i>Dinner
+                                <span class="badge bg-info float-end" id="dinner-count">{{ menu.dinner|length }} items</span>
+                            </h6>
+                            <div id="dinner-items">
+                                {% for item in menu.dinner %}
+                                <div class="input-group mb-2">
+                                    <input type="text" name="dinner_items[]" class="form-control form-control-sm" 
+                                           value="{{ item }}" placeholder="Dinner item" oninput="updateSummary()">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                {% if menu.dinner|length == 0 %}
+                                <div class="input-group mb-2">
+                                    <input type="text" name="dinner_items[]" class="form-control form-control-sm" 
+                                           placeholder="Dinner item" oninput="updateSummary()">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-info add-item" data-target="dinner">
+                                <i class="fas fa-plus me-1"></i>Add Dinner Item
+                            </button>
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn text-white" style="background-color: #3498db;">
+                                <i class="fas fa-save me-1"></i>Save Menu for {{ selected_date }}
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Quick Actions -->
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-danger" onclick="clearAllItems()">
+                            <i class="fas fa-broom me-1"></i>Clear All Items
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="fillSampleMenu()">
+                            <i class="fas fa-magic me-1"></i>Fill Sample Menu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Date selection
+function selectDate(date) {
+    if (date) {
+        window.location.href = `{{ url_for('staff_menu_calendar') }}?date=${date}&year={{ current_year }}&month={{ current_month_num }}`;
+    }
+}
+
+// Initialize remove listeners
+attachRemoveListeners();
+
+// Update summary
+function updateSummary() {
+    // Update breakfast
+    const breakfastInputs = document.querySelectorAll('input[name="breakfast_items[]"]');
+    const breakfastItems = Array.from(breakfastInputs).map(input => input.value).filter(val => val.trim() !== '');
+    document.getElementById('breakfast-count').textContent = `${breakfastItems.length} items`;
+    
+    // Update lunch
+    const lunchInputs = document.querySelectorAll('input[name="lunch_items[]"]');
+    const lunchItems = Array.from(lunchInputs).map(input => input.value).filter(val => val.trim() !== '');
+    document.getElementById('lunch-count').textContent = `${lunchItems.length} items`;
+    
+    // Update dinner
+    const dinnerInputs = document.querySelectorAll('input[name="dinner_items[]"]');
+    const dinnerItems = Array.from(dinnerInputs).map(input => input.value).filter(val => val.trim() !== '');
+    document.getElementById('dinner-count').textContent = `${dinnerItems.length} items`;
+}
+
+function changeDate(date) {
+    window.location.href = `{{ url_for('staff_menu_calendar') }}?date=${date}`;
+}
+
+// Add item functionality
+document.querySelectorAll('.add-item').forEach(button => {
+    button.addEventListener('click', function() {
+        const target = this.getAttribute('data-target');
+        const container = document.getElementById(target + '-items');
+        
+        const newItem = document.createElement('div');
+        newItem.className = 'input-group mb-2';
+        newItem.innerHTML = `
+            <input type="text" name="${target}_items[]" class="form-control form-control-sm" 
+                   placeholder="${target.charAt(0).toUpperCase() + target.slice(1)} item" oninput="updateSummary()">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        container.appendChild(newItem);
+        attachRemoveListeners();
+        updateSummary();
+    });
+});
+
+// Remove item functionality
+function attachRemoveListeners() {
+    document.querySelectorAll('.remove-item').forEach(button => {
+        button.addEventListener('click', function() {
+            const container = this.closest('.input-group').parentElement;
+            if (container.children.length > 1) {
+                this.closest('.input-group').remove();
+            } else {
+                this.previousElementSibling.value = '';
+            }
+            updateSummary();
+        });
+    });
+}
+
+// Clear all items
+function clearAllItems() {
+    if (confirm('Are you sure you want to clear all menu items?')) {
+        document.querySelectorAll('input[name="breakfast_items[]"], input[name="lunch_items[]"], input[name="dinner_items[]"]').forEach(input => {
+            input.value = '';
+        });
+        updateSummary();
+    }
+}
+
+// Fill sample menu
+function fillSampleMenu() {
+    if (confirm('Fill with sample menu items? This will replace current items.')) {
+        // Clear existing items first
+        document.querySelectorAll('#breakfast-items, #lunch-items, #dinner-items').forEach(container => {
+            container.innerHTML = '';
+        });
+        
+        // Add sample breakfast items
+        const breakfastItems = ['Idli', 'Dosa', 'Pongal', 'Coffee'];
+        const breakfastContainer = document.getElementById('breakfast-items');
+        breakfastItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <input type="text" name="breakfast_items[]" class="form-control form-control-sm" value="${item}" oninput="updateSummary()">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            breakfastContainer.appendChild(div);
+        });
+        
+        // Add sample lunch items
+        const lunchItems = ['Rice', 'Dal', 'Sabzi', 'Chapati', 'Salad'];
+        const lunchContainer = document.getElementById('lunch-items');
+        lunchItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <input type="text" name="lunch_items[]" class="form-control form-control-sm" value="${item}" oninput="updateSummary()">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            lunchContainer.appendChild(div);
+        });
+        
+        // Add sample dinner items
+        const dinnerItems = ['Roti', 'Paneer', 'Dal', 'Rice', 'Salad'];
+        const dinnerContainer = document.getElementById('dinner-items');
+        dinnerItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <input type="text" name="dinner_items[]" class="form-control form-control-sm" value="${item}" oninput="updateSummary()">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            dinnerContainer.appendChild(div);
+        });
+        
+        attachRemoveListeners();
+        updateSummary();
+    }
+}
+
+// Auto-scroll to editor when date is selected
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('date')) {
+    document.querySelector('.col-lg-4').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Initialize summary on page load
+updateSummary();
+</script>
+
+<style>
+.calendar-day:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.input-group {
+    transition: all 0.2s ease;
+}
+
+.remove-item:hover {
+    transform: scale(1.1);
+}
+
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    border-bottom: 1px solid #e3e6f0;
+}
+</style>
+{% endblock %}

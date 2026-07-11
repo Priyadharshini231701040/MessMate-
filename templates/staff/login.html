@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MessMate Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body {
+    font-family: 'Poppins', sans-serif;
+    height: 100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background: linear-gradient(135deg, #1c2a40 0%, #3f6f9f 90%);
+    overflow: hidden;
+    position: relative;
+    color: #222;
+  }
+
+  /* Floating shapes with soft blue shades */
+  .floating-shape {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.2;
+    animation: floatShape 8s infinite alternate ease-in-out;
+  }
+  .floating-shape.large { width: 120px; height: 120px; top: 10%; left: 15%; background: linear-gradient(135deg, #a3d8f4, #c1e7ff); animation-delay: 0s; }
+  .floating-shape.medium { width: 70px; height: 70px; top: 60%; right: 20%; background: linear-gradient(135deg, #b7e0f9, #d0f0ff); animation-delay: 3s; }
+  .floating-shape.small { width: 50px; height: 50px; bottom: 35%; left: 25%; background: linear-gradient(135deg, #d0f0ff, #e6f7ff); animation-delay: 5s; }
+  .floating-shape.tiny { width: 40px; height: 40px; bottom: 15%; right: 10%; background: linear-gradient(135deg, #ccefff, #f0fcff); animation-delay: 7s; }
+
+  @keyframes floatShape {
+    0% { transform: translateY(0px) translateX(0) scale(1); }
+    50% { transform: translateY(-20px) translateX(15px) scale(1.05); }
+    100% { transform: translateY(0px) translateX(0) scale(1); }
+  }
+
+  /* Splash screen styling */
+  .splash {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 0 20px;
+    transition: transform 1.2s ease-out, opacity 1s ease-out;
+  }
+  .splash h1 {
+    font-size: 4rem;
+    font-weight: 900;
+    background: linear-gradient(120deg, #c1e7ff 0%, #a3d8f4 50%, #d0f0ff 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(255,255,255,0.3);
+    animation: shimmer 3s linear infinite, waveText 3s ease-in-out infinite alternate;
+  }
+  @keyframes shimmer { to { background-position: 100% center; } }
+  @keyframes waveText { 0% { transform: translateY(0px) skewX(0deg); } 50% { transform: translateY(-10px) skewX(-5deg); } 100% { transform: translateY(0px) skewX(0deg); } }
+
+  .splash span {
+    color: #e6f7ff;
+    font-size: 1.2rem;
+    margin-top: 15px;
+    overflow: hidden;
+    border-right: .15em solid #e6f7ff;
+    white-space: nowrap;
+    letter-spacing: 2px;
+    animation: typing 3s steps(20, end), blink 0.75s step-end infinite;
+  }
+  @keyframes typing { from {width: 0;} to {width: 15ch;} }
+  @keyframes blink { 50% { border-color: transparent; } }
+
+  /* Login container */
+  .login-container {
+    position: absolute;
+    bottom: -100%;
+    width: 100%;
+    height: 70%;
+    background: rgba(245, 243, 238, 0.85);
+    border-top-left-radius: 35px;
+    border-top-right-radius: 35px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 40px 20px;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+    z-index: 15;
+    transition: bottom 1.2s ease-out, opacity 1s ease-out;
+    opacity: 0;
+  }
+  .login-card {
+    max-width: 400px;
+    width: 100%;
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px;
+    padding: 30px 30px 40px;
+    color: #222;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  .form-control {
+    background: #f5f3ee;
+    border: 1px solid #3a6b8f;
+    color: #1e2a3b;
+  }
+  .form-control::placeholder { color: #3a6b8f; }
+
+  .btn-login {
+    background-color: #1e2a3b;
+    border-color: #1e2a3b;
+    color: #fff;
+    font-weight: 600;
+    transition: 0.3s ease;
+    padding: 12px 0;
+    border-radius: 12px;
+    font-size: 1.05rem;
+  }
+  .btn-login:hover,
+  .btn-login:focus {
+    background: linear-gradient(135deg, #c1e7ff, #a3d8f4);
+    color: #1e2a3b;
+    border-color: transparent;
+    box-shadow: 0 0 25px rgba(193,231,255,0.5);
+  }
+
+  /* Active state for splash/login transition */
+  .active .login-container { bottom: 0; opacity: 1; }
+  .active .splash { transform: translateY(-100%); opacity: 0; }
+
+  .footer-symbol { font-size: 0.85rem; color: #888; }
+
+  @media(max-width: 480px) {
+    .splash h1 { font-size: 2.8rem; }
+    .splash span { font-size: 1rem; }
+    .floating-shape.large { width: 100px; height: 100px; top: 10%; left: 10%; }
+    .floating-shape.medium { width: 50px; height: 50px; top: 50%; right: 20%; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Floating shapes -->
+  <div class="floating-shape large"></div>
+  <div class="floating-shape medium"></div>
+  <div class="floating-shape small"></div>
+  <div class="floating-shape tiny"></div>
+
+  <!-- Splash screen -->
+  <div class="splash" id="splash" role="banner" tabindex="0" aria-label="Welcome to MessMate, click to login">
+    <h1>MessMate</h1>
+    <span>your meal. your space.</span>
+  </div>
+
+  <!-- Login form -->
+  <div class="login-container" id="login" role="main" aria-label="Login to MessMate form">
+    <div class="login-card">
+      <h4 class="mb-4 text-center">Login</h4>
+      <form method="POST" novalidate>
+        <div class="mb-3">
+          <label for="username" class="form-label">Username</label>
+          <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required autocomplete="username" />
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-login w-100" aria-label="Login to MessMate">Login</button>
+      </form>
+      <div class="footer-symbol mt-3 text-center" aria-hidden="true">
+        <small>🍴 MessMate | Indian UA</small>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const splash = document.getElementById('splash');
+  splash.addEventListener('click', () => document.body.classList.add('active'));
+  splash.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      document.body.classList.add('active');
+    }
+  });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

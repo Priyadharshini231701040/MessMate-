@@ -1,0 +1,274 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Attendance Scanner - MessMate Staff{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Attendance Scanner</h3>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('staff_attendance_history') }}" class="btn btn-primary">
+            <i class="fas fa-calendar me-1"></i> View History
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- QR Scanner -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-qrcode me-2"></i>QR Code Scanner</h5>
+                <button class="btn btn-primary btn-sm" onclick="toggleScanner()" id="scannerToggle">
+                    <i class="fas fa-camera me-1"></i> Start Scanner
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="scanner-container" style="display: none;">
+                    <div id="reader" style="width: 100%; height: 300px; border: 2px solid #3498db; border-radius: 10px;"></div>
+                    <div class="text-center mt-3">
+                        <p class="text-muted">Point camera at student's QR code</p>
+                    </div>
+                </div>
+                <div id="scanner-placeholder" class="text-center py-5">
+                    <i class="fas fa-camera text-muted fa-3x mb-3"></i>
+                    <h5>Scanner Inactive</h5>
+                    <p class="text-muted">Click "Start Scanner" to begin scanning attendance</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manual Entry -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-keyboard me-2"></i>Manual Entry</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('manual_attendance') }}" id="manualEntryForm">
+                    <div class="mb-3">
+                        <label for="studentId" class="form-label">Student ID *</label>
+                        <input type="text" class="form-control" id="studentId" name="student_id" placeholder="Enter Student ID" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date *</label>
+                        <input type="date" class="form-control" id="date" name="date" value="{{ selected_date }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mealType" class="form-label">Meal Type *</label>
+                        <select class="form-select" id="mealType" name="meal_type" required>
+                            <option value="">Select Meal</option>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="hostelType" class="form-label">Hostel Type *</label>
+                        <select class="form-select" id="hostelType" name="hostel_type" required>
+                            <option value="">Select Hostel</option>
+                            <option value="Male">Male Hostel</option>
+                            <option value="Female">Female Hostel</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-check-circle me-1"></i> Mark Attendance
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Summary -->
+    <div class="col-md-6">
+        <!-- Quick Stats -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Today's Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="stats-number text-primary" id="breakfastCount">
+                            {{ breakfast_present }}
+                        </div>
+                        <small class="text-muted">Breakfast</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="stats-number text-success" id="lunchCount">
+                            {{ lunch_present }}
+                        </div>
+                        <small class="text-muted">Lunch</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="stats-number text-info" id="dinnerCount">
+                            {{ dinner_present }}
+                        </div>
+                        <small class="text-muted">Dinner</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scan Result Modal -->
+<div class="modal fade" id="scanResultModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Attendance Result</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="scanResultBody">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+<script>
+let html5QrcodeScanner = null;
+let scanCounts = { Breakfast: 0, Lunch: 0, Dinner: 0 };
+
+function toggleScanner() {
+    const container = document.getElementById('scanner-container');
+    const placeholder = document.getElementById('scanner-placeholder');
+    const toggleBtn = document.getElementById('scannerToggle');
+    
+    if (container.style.display === 'none') {
+        // Start scanner
+        container.style.display = 'block';
+        placeholder.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-stop me-1"></i> Stop Scanner';
+        toggleBtn.classList.remove('btn-primary');
+        toggleBtn.classList.add('btn-danger');
+        
+        startScanner();
+    } else {
+        // Stop scanner
+        container.style.display = 'none';
+        placeholder.style.display = 'block';
+        toggleBtn.innerHTML = '<i class="fas fa-camera me-1"></i> Start Scanner';
+        toggleBtn.classList.remove('btn-danger');
+        toggleBtn.classList.add('btn-primary');
+        
+        stopScanner();
+    }
+}
+
+function startScanner() {
+    html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", 
+        { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            supportedScanTypes: [
+                Html5QrcodeScanType.SCAN_TYPE_CAMERA
+            ]
+        },
+        false
+    );
+    
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+}
+
+function stopScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(error => {
+            console.error("Failed to clear scanner", error);
+        });
+        html5QrcodeScanner = null;
+    }
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+    // Process the QR code data
+    const qrData = decodedText.split('-');
+    if (qrData.length === 3) {
+        const [studentId, dateStr, mealType] = qrData;
+        markAttendance(studentId, dateStr, mealType);
+    } else {
+        showScanResult('error', 'Invalid QR code format');
+    }
+    
+    // Stop scanner after successful scan
+    stopScanner();
+    toggleScanner();
+}
+
+function onScanFailure(error) {
+    // Handle scan failure quietly
+}
+
+function markAttendance(studentId, dateStr, mealType) {
+    // Show loading in modal
+    document.getElementById('scanResultBody').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Marking attendance for Student ${studentId}...</p>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('scanResultModal'));
+    modal.show();
+    
+    // Call the mark attendance endpoint
+    fetch(`/staff/mark_attendance/${studentId}/${dateStr}/${mealType}`)
+        .then(response => {
+            if (response.ok) {
+                // Update scan counts
+                scanCounts[mealType] = (scanCounts[mealType] || 0) + 1;
+                updateScanCounts();
+                
+                // Show success message
+                document.getElementById('scanResultBody').innerHTML = `
+                    <div class="text-center">
+                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                        <h5>Attendance Marked Successfully!</h5>
+                        <p><strong>Student ID:</strong> ${studentId}</p>
+                        <p><strong>Meal:</strong> ${mealType}</p>
+                        <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+                        <button class="btn btn-primary mt-2" onclick="location.reload()">Refresh Page</button>
+                    </div>
+                `;
+            } else {
+                throw new Error('Failed to mark attendance');
+            }
+        })
+        .catch(error => {
+            document.getElementById('scanResultBody').innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-times-circle text-danger fa-3x mb-3"></i>
+                    <h5>Attendance Failed!</h5>
+                    <p>Error: ${error.message}</p>
+                    <button class="btn btn-secondary mt-2" data-bs-dismiss="modal">Close</button>
+                </div>
+            `;
+        });
+}
+
+function updateScanCounts() {
+    document.getElementById('breakfastCount').textContent = (parseInt(document.getElementById('breakfastCount').textContent) || 0) + (scanCounts.Breakfast || 0);
+    document.getElementById('lunchCount').textContent = (parseInt(document.getElementById('lunchCount').textContent) || 0) + (scanCounts.Lunch || 0);
+    document.getElementById('dinnerCount').textContent = (parseInt(document.getElementById('dinnerCount').textContent) || 0) + (scanCounts.Dinner || 0);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Set today's date in manual form if not set
+    if (!document.getElementById('date').value) {
+        document.getElementById('date').value = '{{ selected_date }}';
+    }
+});
+</script>
+
+<style>
+.stats-number {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+</style>
+{% endblock %}

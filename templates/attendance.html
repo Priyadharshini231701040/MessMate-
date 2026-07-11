@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Calendar - MessMate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background-color: #2c3e50;
+            min-height: 100vh;
+            padding-top: 20px;
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 15px 20px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #3498db;
+        }
+        .badge {
+            font-size: 0.8em;
+        }
+                .main-content {
+            padding: 20px;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+        .calendar-header {
+            grid-column: span 7;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .day-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            background-color: #3498db;
+            border-radius: 6px;
+            color: white;
+        }
+        .calendar-day {
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 10px;
+            min-height: 120px;
+            background-color: white;
+        }
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .today {
+            background-color: #e8f4f8;
+            border: 2px solid #3498db;
+        }
+        .no-booking {
+            color: #999;
+            font-style: italic;
+        }
+        .status-present { color: green; }
+        .status-absent { color: red; }
+        .status-notscanned { color: orange; }
+        .fine-amount { color: #dc3545; font-weight: bold; }
+        .meal-status { font-size: 0.85em; }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .legend-bar {
+            width: 20px;
+            height: 3px;
+            background-color: rgb(255, 0, 0);
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        .card-header {
+            background-color: #3498db;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .btn-outline-primary {
+            color: #3498db;
+            border-color: #3498db;
+        }
+        .btn-outline-primary:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            color: black;
+            padding: 10px 0;
+            text-align: center;
+            margin-top: 30px;
+        }
+        /* Added booking-policy style for the note box */
+        .booking-policy {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            color: black;
+        }
+        .booking-policy h5 {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Updated Sidebar Navigation -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="text-center mb-4">
+                <a href="{{ url_for('home') }}" class="navbar-brand text-white">
+                    <i class="fas fa-utensils me-2"></i> MessMate
+                </a>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('home') }}"><i class="fas fa-home me-2"></i> Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i> Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('book') }}"><i class="fas fa-calendar-plus me-2"></i> Book Meals</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('history') }}"><i class="fas fa-history me-2"></i> History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('reviews') }}"><i class="fas fa-star me-2"></i> Reviews</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('attendance') }}"><i class="fas fa-calendar-check me-2"></i> Attendance</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('fines') }}"><i class="fas fa-money-bill-wave me-2"></i> Fines</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('cancel_meal') }}"><i class="fas fa-times-circle me-2"></i> Cancel Meal</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('notifications') }}"><i class="fas fa-bell me-2"></i> Notifications 
+                        {% if notifications %}<span class="badge bg-danger">{{ notifications|length }}</span>{% endif %}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>Attendance Calendar</h3>
+                
+            </div>
+            
+            <!-- Month Navigation -->
+            <div class="d-flex justify-content-between mb-4">
+                <a href="{{ url_for('attendance', year=prev_year, month=prev_month) }}" class="btn btn-outline-primary">⬅ Previous Month</a>
+                <h4>{{ current_month.strftime('%B %Y') }}</h4>
+                <a href="{{ url_for('attendance', year=next_year, month=next_month) }}" class="btn btn-outline-primary">Next Month ➡</a>
+            </div>
+
+            <!-- Calendar -->
+            <div class="calendar">
+                <!-- Day headers -->
+                <div class="day-header">Sun</div>
+                <div class="day-header">Mon</div>
+                <div class="day-header">Tue</div>
+                <div class="day-header">Wed</div>
+                <div class="day-header">Thu</div>
+                <div class="day-header">Fri</div>
+                <div class="day-header">Sat</div>
+                
+                <!-- Empty days -->
+                {% for i in range(first_weekday) %}
+                    <div class="calendar-day"></div>
+                {% endfor %}
+                
+                <!-- Days -->
+                {% for day in calendar_data %}
+                    <div class="calendar-day {% if day.date_str == today_str %}today{% endif %}">
+                        <div class="day-number">{{ day.date.day }}</div>
+                        
+                        {% if day.has_booking %}
+                            <div class="meal-status">
+                                <span class="{% if day.breakfast_status == 'Present' %}status-present{% elif day.breakfast_status == 'Absent' %}status-absent{% else %}status-notscanned{% endif %}">
+                                    B: {{ day.breakfast_status }}
+                                </span>
+                            </div>
+                            <div class="meal-status">
+                                <span class="{% if day.lunch_status == 'Present' %}status-present{% elif day.lunch_status == 'Absent' %}status-absent{% else %}status-notscanned{% endif %}">
+                                    L: {{ day.lunch_status }}
+                                </span>
+                            </div>
+                            <div class="meal-status">
+                                <span class="{% if day.dinner_status == 'Present' %}status-present{% elif day.dinner_status == 'Absent' %}status-absent{% else %}status-notscanned{% endif %}">
+                                    D: {{ day.dinner_status }}
+                                </span>
+                            </div>
+                        {% else %}
+                            <div class="no-booking">No bookings</div>
+                        {% endif %}
+                        
+                        {% if day.has_fine %}
+                            <div class="fine-amount">Fine: ₹{{ day.fine_amount }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Monthly Fines Summary -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-money-bill-wave me-2"></i>Fines for {{ current_month.strftime('%B %Y') }}</h5>
+                </div>
+                <div class="card-body">
+                    {% if monthly_fines %}
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Meal</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fine in monthly_fines %}
+                                <tr>
+                                    <td>{{ fine.date }}</td>
+                                    <td>{{ fine.meal_type }}</td>
+                                    <td>₹{{ fine.amount }}</td>
+                                    <td>
+                                        {% if fine.paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Due</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <p class="fw-bold">Total: ₹{{ monthly_fines|sum(attribute='amount') }}</p>
+                    {% else %}
+                        <p class="text-muted">No fines for this month</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="booking-policy">
+                <h5><i class="fas fa-info-circle me-2"></i>Note</h5>
+                <div class="legend-item"><span class="status-present">●</span> Present - Meal was consumed</div>
+                <div class="legend-item"><span class="status-absent">●</span> Absent - Meal was booked but not consumed</div>
+                <div class="legend-item"><span class="status-notscanned">●</span> Not Scanned - QR code not scanned</div>
+                <div class="legend-item"><div class="legend-bar"></div> Fine applied for missed meal</div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="footer mt-5">
+                <div class="container">
+                    <p class="mb-0">🍴 MessMate | Indian UA</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

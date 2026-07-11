@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard - MessMate</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3a8ffe;
+            --secondary: #1e62db;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .sidebar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            min-height: 100vh;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar .logo {
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .sidebar .nav-link {
+            color: white;
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 20px;
+        }
+        
+        .dashboard-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            height: 100%;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .stats-card .card-icon {
+            background: linear-gradient(120deg, #3a8ffe, #1e62db);
+        }
+        
+        .bookings-card .card-icon {
+            background: linear-gradient(120deg, #00cdac, #02aab0);
+        }
+        
+        .cancellations-card .card-icon {
+            background: linear-gradient(120deg, #ff7e5f, #feb47b);
+        }
+        
+        .fines-card .card-icon {
+            background: linear-gradient(120deg, #ff6b6b, #ff8e53);
+        }
+        
+        .card-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 10px 0 5px 0;
+        }
+        
+        .recent-activity {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .activity-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .user-info img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e0e6ed;
+        }
+        
+        .welcome-header {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="logo text-center">
+                    <h3 class="text-white">Mess<span class="text-warning">Mate</span></h3>
+                    <small class="text-light">Staff Portal</small>
+                </div>
+                
+                <nav class="nav flex-column p-3">
+                    <a class="nav-link active" href="/staff/dashboard">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a class="nav-link" href="/staff/students">
+                        <i class="fas fa-users"></i> Students
+                    </a>
+                    <a class="nav-link" href="/staff/bookings">
+                        <i class="fas fa-utensils"></i> Bookings
+                    </a>
+                    <a class="nav-link" href="/staff/attendance">
+                        <i class="fas fa-qrcode"></i> Attendance
+                    </a>
+                    <a class="nav-link" href="/staff/fines">
+                        <i class="fas fa-money-bill-wave"></i> Fines
+                    </a>
+                    <a class="nav-link" href="/staff/cancellations">
+                        <i class="fas fa-times-circle"></i> Cancellations
+                    </a>
+                    <a class="nav-link" href="/staff/ratings">
+                        <i class="fas fa-star"></i> Ratings
+                    </a>
+                    <a class="nav-link" href="/staff/menu_calendar">
+                        <i class="fas fa-calendar-alt"></i> Menu Calendar
+                    </a>
+                    <a class="nav-link" href="/staff/analytics">
+                        <i class="fas fa-chart-bar"></i> Analytics
+                    </a>
+                    <a class="nav-link" href="/staff/notifications">
+                        <i class="fas fa-bell"></i> Notifications
+                    </a>
+                    {% if session.staff_role == 'admin' %}
+                    <a class="nav-link" href="/staff/admin">
+                        <i class="fas fa-cogs"></i> Administration
+                    </a>
+                    {% endif %}
+                    <a class="nav-link" href="/staff/logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Welcome Header -->
+                <div class="welcome-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h2 class="mb-1">Welcome, {{ session.staff_username }}!</h2>
+                            <p class="text-muted mb-0">Here's what's happening in your mess today.</p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="user-info d-flex align-items-center">
+                                <div class="me-3">
+                                    <strong class="d-block">{{ session.staff_username }}</strong>
+                                    <small class="text-muted">{{ session.staff_role|title }}</small>
+                                </div>
+                                <img src="https://ui-avatars.com/api/?name={{ session.staff_username }}&background=3a8ffe&color=fff" alt="Staff">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="dashboard-card stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="card-value text-primary">{{ stats.total_students }}</div>
+                                    <div class="card-text">Total Students</div>
+                                </div>
+                                <div class="card-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="dashboard-card bookings-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="card-value text-success">{{ stats.today_bookings }}</div>
+                                    <div class="card-text">Today's Bookings</div>
+                                </div>
+                                <div class="card-icon">
+                                    <i class="fas fa-utensils"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="dashboard-card cancellations-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="card-value text-warning">{{ stats.pending_cancellations }}</div>
+                                    <div class="card-text">Pending Cancellations</div>
+                                </div>
+                                <div class="card-icon">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="dashboard-card fines-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="card-value text-danger">{{ stats.unpaid_fines_count }}</div>
+                                    <div class="card-text">Students with Unpaid Fines</div>
+                                </div>
+                                <div class="card-icon">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Activities and Charts -->
+                <div class="row">
+                    <!-- Recent Activities -->
+                    <div class="col-lg-6 mb-4">
+                        <div class="recent-activity">
+                            <h5 class="mb-4">Recent Activities</h5>
+                            
+                            <!-- Recent Bookings -->
+                            <h6 class="text-primary mb-3">{{ activities.booking_title }}</h6>
+                            {% for booking in activities.recent_bookings %}
+                            <div class="activity-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ booking[0] }}</strong>
+                                        <small class="text-muted d-block">{{ booking[2] }} - {{ booking[3] }}</small>
+                                    </div>
+                                    <small class="text-muted">{{ booking[1] }}</small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            <!-- Recent Fines -->
+                            <h6 class="text-danger mt-4 mb-3">Recent Fines</h6>
+                            {% for fine in activities.recent_fines %}
+                            <div class="activity-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ fine[0] }}</strong>
+                                        <small class="text-muted d-block">₹{{ fine[3] }} - {{ fine[2] }}</small>
+                                    </div>
+                                    <small class="text-muted">{{ fine[1] }}</small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            <!-- Recent Cancellations -->
+                            <h6 class="text-warning mt-4 mb-3">Recent Cancellations</h6>
+                            {% for cancellation in activities.recent_cancellations %}
+                            <div class="activity-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ cancellation[0] }}</strong>
+                                        <small class="text-muted d-block">{{ cancellation[2] }} - {{ cancellation[3] }}</small>
+                                    </div>
+                                    <small class="text-muted">{{ cancellation[1] }}</small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Attendance Stats -->
+                    <div class="col-lg-6 mb-4">
+                        <div class="recent-activity">
+                            <h5 class="mb-4">Today's Attendance</h5>
+                            
+                            <div class="row text-center mb-4">
+                                <div class="col-4">
+                                    <div class="card-value text-primary">{{ attendance_stats.present }}</div>
+                                    <div class="card-text">Present</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="card-value text-warning">{{ attendance_stats.absent }}</div>
+                                    <div class="card-text">Absent</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="card-value text-secondary">{{ attendance_stats.not_scanned }}</div>
+                                    <div class="card-text">Not Scanned</div>
+                                </div>
+                            </div>
+                            
+                            <h6 class="mb-3">By Meal Type</h6>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h6>Breakfast</h6>
+                                    <div class="card-value text-success">{{ attendance_stats.breakfast.present }}</div>
+                                    <small class="text-muted">Present</small>
+                                </div>
+                                <div class="col-4">
+                                    <h6>Lunch</h6>
+                                    <div class="card-value text-success">{{ attendance_stats.lunch.present }}</div>
+                                    <small class="text-muted">Present</small>
+                                </div>
+                                <div class="col-4">
+                                    <h6>Dinner</h6>
+                                    <div class="card-value text-success">{{ attendance_stats.dinner.present }}</div>
+                                    <small class="text-muted">Present</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Wastage Data -->
+                        <div class="recent-activity mt-4">
+                            <h5 class="mb-4">Today's Wastage Estimate</h5>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h6>Breakfast</h6>
+                                    <div class="card-value text-warning">{{ wastage_data.breakfast }} kg</div>
+                                </div>
+                                <div class="col-4">
+                                    <h6>Lunch</h6>
+                                    <div class="card-value text-warning">{{ wastage_data.lunch }} kg</div>
+                                </div>
+                                <div class="col-4">
+                                    <h6>Dinner</h6>
+                                    <div class="card-value text-warning">{{ wastage_data.dinner }} kg</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <footer class="mt-5 text-center text-muted">
+                    <p>{{ footer_symbol }}</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            var alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    var bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>

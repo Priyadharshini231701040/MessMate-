@@ -1,0 +1,460 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Cancellation Management - MessMate Staff{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Cancellation Management</h3>
+    <div class="d-flex gap-2">
+        <input type="date" class="form-control" id="dateFilter" value="{{ selected_date }}" 
+               onchange="updateFilters()" style="width: 150px;">
+        <select class="form-select" id="hostelFilter" onchange="updateFilters()" style="width: 150px;">
+            <option value="">All Hostels</option>
+            <option value="Male" {% if selected_hostel == 'Male' %}selected{% endif %}>Male Hostel</option>
+            <option value="Female" {% if selected_hostel == 'Female' %}selected{% endif %}>Female Hostel</option>
+        </select>
+        <select class="form-select" id="mealFilter" onchange="updateFilters()" style="width: 150px;">
+            <option value="">All Meals</option>
+            <option value="Breakfast" {% if selected_meal == 'Breakfast' %}selected{% endif %}>Breakfast</option>
+            <option value="Lunch" {% if selected_meal == 'Lunch' %}selected{% endif %}>Lunch</option>
+            <option value="Dinner" {% if selected_meal == 'Dinner' %}selected{% endif %}>Dinner</option>
+        </select>
+        <button class="btn btn-outline-primary" onclick="exportReport()">
+            <i class="fas fa-download me-1"></i> Export Report
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Cancellations Summary -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Cancellations Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="stats-number text-info">{{ cancellations|length }}</div>
+                    <small class="text-muted">Total Requests</small>
+                </div>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="stats-number text-warning">
+                            {{ cancellations|selectattr("8", "equalto", 0)|list|length }}
+                        </div>
+                        <small class="text-muted">Pending</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="stats-number text-success">
+                            {{ cancellations|selectattr("8", "equalto", 1)|list|length }}
+                        </div>
+                        <small class="text-muted">Approved</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="stats-number text-danger">
+                            {{ cancellations|selectattr("8", "equalto", 2)|list|length }}
+                        </div>
+                        <small class="text-muted">Rejected</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-success w-100 mb-2" onclick="approveAllPending()">
+                    <i class="fas fa-check-circle me-1"></i> Approve All Pending
+                </button>
+                <button class="btn btn-warning w-100" onclick="viewCancellationAnalytics()">
+                    <i class="fas fa-chart-line me-1"></i> View Analytics
+                </button>
+                {% if selected_date or selected_hostel or selected_meal %}
+                <button class="btn btn-outline-secondary w-100 mt-2" onclick="clearFilters()">
+                    <i class="fas fa-times me-1"></i> Clear Filters
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancellations List -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-times-circle me-2"></i>
+                    Cancellation Requests
+                    <span class="badge bg-primary ms-2">{{ cancellations|length }}</span>
+                </h5>
+                {% if cancellations %}
+                <div class="text-muted small">
+                    Showing {{ cancellations|length }} request(s)
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if cancellations %}
+                    <div id="cancellationsList">
+                        {% for cancellation in cancellations %}
+                        <div class="cancellation-item mb-3 p-3 border rounded" 
+                             data-status="{% if cancellation[8] == 0 %}pending{% elif cancellation[8] == 1 %}approved{% else %}rejected{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <strong class="me-3">{{ cancellation[2] }}</strong>
+                                        <span class="badge {% if cancellation[3] == 'Female' %}bg-danger{% else %}bg-primary{% endif %} me-2">
+                                            {{ cancellation[3] }} Hostel
+                                        </span>
+                                        <span class="badge bg-secondary">ID: {{ cancellation[1] }}</span>
+                                    </div>
+                                    <p class="mb-1">
+                                        <strong>Date:</strong> {{ cancellation[4] }} | 
+                                        <strong>Meal:</strong> {{ cancellation[5] }} |
+                                        <strong>Item:</strong> <span class="text-muted">{{ cancellation[6] }}</span>
+                                    </p>
+                                    <p class="mb-2"><strong>Reason:</strong> {{ cancellation[7] }}</p>
+                                    <small class="text-muted">Requested: {{ cancellation[9] }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="mb-2">
+                                        {% if cancellation[8] == 0 %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif cancellation[8] == 1 %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if cancellation[8] == 0 %}
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-success" 
+                                                onclick="approveCancellation({{ cancellation[0] }})"
+                                                data-bs-toggle="tooltip" title="Approve">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-danger" 
+                                                onclick="rejectCancellation({{ cancellation[0] }})"
+                                                data-bs-toggle="tooltip" title="Reject">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-muted small">
+                                        Processed
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-times-circle text-muted fa-3x mb-3"></i>
+                        <h5>No Cancellation Requests</h5>
+                        <p class="text-muted">
+                            {% if selected_date or selected_hostel or selected_meal %}
+                                No cancellation requests match your current filters.
+                            {% else %}
+                                There are no cancellation requests at the moment.
+                            {% endif %}
+                        </p>
+                        {% if selected_date or selected_hostel or selected_meal %}
+                        <button class="btn btn-primary" onclick="clearFilters()">
+                            Clear Filters
+                        </button>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Modal -->
+<div class="modal fade" id="analyticsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-chart-line me-2"></i>Cancellation Analytics
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Analytics Filters -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Time Period</label>
+                        <select class="form-select" id="analyticsPeriod" onchange="updateAnalytics()">
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Meal Type</label>
+                        <select class="form-select" id="analyticsMealType" onchange="updateAnalytics()">
+                            <option value="all">All Meals</option>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Hostel Type</label>
+                        <select class="form-select" id="analyticsHostelType" onchange="updateAnalytics()">
+                            <option value="all">All Hostels</option>
+                            <option value="Male">Male Hostel</option>
+                            <option value="Female">Female Hostel</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row text-center mb-4">
+                    <div class="col-md-3">
+                        <div class="stats-number text-primary" id="totalCancellations">0</div>
+                        <small class="text-muted">Total Cancellations</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-number text-warning" id="pendingCancellations">0</div>
+                        <small class="text-muted">Pending</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-number text-success" id="approvedCancellations">0</div>
+                        <small class="text-muted">Approved</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-number text-danger" id="rejectedCancellations">0</div>
+                        <small class="text-muted">Rejected</small>
+                    </div>
+                </div>
+
+                <!-- Single Chart for Meal Type Distribution -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6>Meal Type Distribution</h6>
+                        <canvas id="mealDistributionChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+
+                <hr>
+                
+                <!-- Top Cancellation Reasons -->
+                <div class="booking-policy">
+                    <h5><i class="fas fa-info-circle me-2"></i>Top Cancellation Reasons</h5>
+                    <ul class="mb-0 mt-2">
+                        <li><strong>Fever/Not Well</strong> - Student is unwell</li>
+                        <li><strong>Classes/Exams</strong> - Academic commitments</li>
+                        <li><strong>Going Home</strong> - Visiting family</li>
+                        <li><strong>Outside Food</strong> - Eating elsewhere</li>
+                        <li><strong>Other Reasons</strong> - Miscellaneous circumstances</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let analyticsModal = null;
+let mealDistributionChart = null;
+
+function updateFilters() {
+    const dateFilter = document.getElementById('dateFilter').value;
+    const hostelFilter = document.getElementById('hostelFilter').value;
+    const mealFilter = document.getElementById('mealFilter').value;
+    
+    let url = '{{ url_for("staff_cancellations") }}?';
+    if (dateFilter) url += `date=${dateFilter}&`;
+    if (hostelFilter) url += `hostel=${hostelFilter}&`;
+    if (mealFilter) url += `meal=${mealFilter}&`;
+    
+    window.location.href = url.slice(0, -1);
+}
+
+function clearFilters() {
+    window.location.href = '{{ url_for("staff_cancellations") }}';
+}
+
+function approveCancellation(cancellationId) {
+    if (confirm('Are you sure you want to approve this cancellation request?')) {
+        window.location.href = `/staff/approve_cancellation/${cancellationId}`;
+    }
+}
+
+function rejectCancellation(cancellationId) {
+    if (confirm('Are you sure you want to reject this cancellation request?')) {
+        window.location.href = `/staff/reject_cancellation/${cancellationId}`;
+    }
+}
+
+function approveAllPending() {
+    const pendingCount = {{ cancellations|selectattr("8", "equalto", 0)|list|length }};
+    
+    if (pendingCount === 0) {
+        alert('No pending requests to approve.');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to approve all ${pendingCount} pending cancellation requests?`)) {
+        window.location.href = '/staff/approve_all_pending';
+    }
+}
+
+function viewCancellationAnalytics() {
+    if (!analyticsModal) {
+        analyticsModal = new bootstrap.Modal(document.getElementById('analyticsModal'));
+    }
+    
+    // Load initial analytics data
+    updateAnalytics();
+    
+    analyticsModal.show();
+}
+
+function updateAnalytics() {
+    const period = document.getElementById('analyticsPeriod').value;
+    const mealType = document.getElementById('analyticsMealType').value;
+    const hostelType = document.getElementById('analyticsHostelType').value;
+    
+    // Show loading state
+    document.getElementById('totalCancellations').textContent = '...';
+    document.getElementById('pendingCancellations').textContent = '...';
+    document.getElementById('approvedCancellations').textContent = '...';
+    document.getElementById('rejectedCancellations').textContent = '...';
+    
+    // Fetch analytics data
+    fetch(`/staff/get_cancellation_analytics?period=${period}&meal_type=${mealType}&hostel_type=${hostelType}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update statistics
+            document.getElementById('totalCancellations').textContent = data.total;
+            document.getElementById('pendingCancellations').textContent = data.pending;
+            document.getElementById('approvedCancellations').textContent = data.approved;
+            document.getElementById('rejectedCancellations').textContent = data.rejected;
+            
+            // Update chart
+            updateMealDistributionChart(data);
+        })
+        .catch(error => {
+            console.error('Error fetching analytics:', error);
+            alert('Error loading analytics data');
+        });
+}
+
+function updateMealDistributionChart(data) {
+    const ctx = document.getElementById('mealDistributionChart').getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (mealDistributionChart) {
+        mealDistributionChart.destroy();
+    }
+    
+    const mealData = [
+        data.meal_distribution['Breakfast'] || 0,
+        data.meal_distribution['Lunch'] || 0,
+        data.meal_distribution['Dinner'] || 0
+    ];
+    
+    mealDistributionChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Breakfast', 'Lunch', 'Dinner'],
+            datasets: [{
+                data: mealData,
+                backgroundColor: [
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 99, 132, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 99, 132, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: `Meal Type Distribution (${data.period})`
+                }
+            }
+        }
+    });
+}
+
+function exportCancellations() {
+    const dateFilter = document.getElementById('dateFilter').value;
+    const hostelFilter = document.getElementById('hostelFilter').value;
+    const mealFilter = document.getElementById('mealFilter').value;
+    
+    let url = '/staff/export_cancellations?';
+    if (dateFilter) url += `date=${dateFilter}&`;
+    if (hostelFilter) url += `hostel=${hostelFilter}&`;
+    if (mealFilter) url += `meal=${mealFilter}&`;
+    
+    window.location.href = url.slice(0, -1);
+}
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+
+<style>
+.cancellation-item {
+    background: #f8f9fa;
+    border-left: 4px solid #6c757d;
+    transition: all 0.3s ease;
+}
+.cancellation-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.cancellation-item[data-status="pending"] {
+    border-left-color: #ffc107;
+    background: #fff3cd;
+}
+.cancellation-item[data-status="approved"] {
+    border-left-color: #198754;
+    background: #d1e7dd;
+}
+.cancellation-item[data-status="rejected"] {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+}
+.stats-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+.booking-policy {
+    background: #e8f4f8;
+    border-left: 4px solid #3498db;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    color: black;
+}
+.booking-policy h5 {
+    color: black;
+}
+</style>
+{% endblock %}

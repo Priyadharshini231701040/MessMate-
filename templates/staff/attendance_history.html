@@ -1,0 +1,420 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Attendance History - MessMate Staff{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>
+        <a href="{{ url_for('staff_attendance') }}" class="text-decoration-none me-2">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        Attendance History
+    </h3>
+    <div class="d-flex gap-2 align-items-center">
+        <a href="{{ url_for('staff_attendance_history', year=prev_year, month=prev_month, hostel=selected_hostel) }}" 
+           class="btn btn-outline-primary">
+            <i class="fas fa-chevron-left me-1"></i> Previous Month
+        </a>
+        <h4 class="mb-0 mx-3">{{ current_month.strftime('%B %Y') }}</h4>
+        <a href="{{ url_for('staff_attendance_history', year=next_year, month=next_month, hostel=selected_hostel) }}" 
+           class="btn btn-outline-primary">
+            Next Month <i class="fas fa-chevron-right ms-1"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <label for="hostelFilter" class="form-label">Filter by Hostel:</label>
+                <select class="form-select" id="hostelFilter" onchange="updateHostelFilter(this.value)">
+                    <option value="all" {% if selected_hostel == 'all' %}selected{% endif %}>All Hostels</option>
+                    <option value="Male" {% if selected_hostel == 'Male' %}selected{% endif %}>Male Hostel</option>
+                    <option value="Female" {% if selected_hostel == 'Female' %}selected{% endif %}>Female Hostel</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calendar -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>
+            Attendance Calendar - {{ current_month.strftime('%B %Y') }}
+            {% if selected_hostel != 'all' %}
+            <span class="badge bg-info ms-2">{{ selected_hostel }} Hostel</span>
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="calendar">
+            <!-- Day headers -->
+            <div class="calendar-header row text-center fw-bold mb-2">
+                <div class="col p-2 border bg-primary text-white">Sun</div>
+                <div class="col p-2 border bg-primary text-white">Mon</div>
+                <div class="col p-2 border bg-primary text-white">Tue</div>
+                <div class="col p-2 border bg-primary text-white">Wed</div>
+                <div class="col p-2 border bg-primary text-white">Thu</div>
+                <div class="col p-2 border bg-primary text-white">Fri</div>
+                <div class="col p-2 border bg-primary text-white">Sat</div>
+            </div>
+
+            <!-- Calendar grid -->
+            <div class="calendar-grid">
+                <!-- Empty days for the first week -->
+                {% for i in range(first_weekday) %}
+                <div class="calendar-day col p-2 border bg-light"></div>
+                {% endfor %}
+
+                <!-- Days of the month -->
+                {% for day in calendar_data %}
+                <div class="calendar-day col p-2 border 
+                    {% if day.date_str == today_str %}bg-warning{% endif %}"
+                    onclick="viewDayAttendance('{{ day.date_str }}')"
+                    style="cursor: pointer; min-height: 120px; transition: all 0.2s ease;">
+                    
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <strong class="{% if day.date_str == today_str %}text-dark{% endif %}">{{ day.date.day }}</strong>
+                        {% if day.date_str == today_str %}
+                        <span class="badge bg-dark">Today</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Attendance summary -->
+                    <div class="attendance-summary small">
+                        {% set breakfast_present = namespace(value=0) %}
+                        {% set breakfast_absent = namespace(value=0) %}
+                        {% set lunch_present = namespace(value=0) %}
+                        {% set lunch_absent = namespace(value=0) %}
+                        {% set dinner_present = namespace(value=0) %}
+                        {% set dinner_absent = namespace(value=0) %}
+                        
+                        {% for meal_type, status, count in day.attendance_summary %}
+                            {% if meal_type == 'Breakfast' and status == 'Present' %}
+                                {% set breakfast_present.value = count %}
+                            {% elif meal_type == 'Breakfast' and status == 'Absent' %}
+                                {% set breakfast_absent.value = count %}
+                            {% elif meal_type == 'Lunch' and status == 'Present' %}
+                                {% set lunch_present.value = count %}
+                            {% elif meal_type == 'Lunch' and status == 'Absent' %}
+                                {% set lunch_absent.value = count %}
+                            {% elif meal_type == 'Dinner' and status == 'Present' %}
+                                {% set dinner_present.value = count %}
+                            {% elif meal_type == 'Dinner' and status == 'Absent' %}
+                                {% set dinner_absent.value = count %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <div class="meal-stats">
+                            <div class="d-flex justify-content-between">
+                                <span>B:</span>
+                                <span>
+                                    <span class="badge bg-success">{{ breakfast_present.value }}</span>
+                                    <span class="badge bg-danger">{{ breakfast_absent.value }}</span>
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>L:</span>
+                                <span>
+                                    <span class="badge bg-success">{{ lunch_present.value }}</span>
+                                    <span class="badge bg-danger">{{ lunch_absent.value }}</span>
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>D:</span>
+                                <span>
+                                    <span class="badge bg-success">{{ dinner_present.value }}</span>
+                                    <span class="badge bg-danger">{{ dinner_absent.value }}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New row after Saturday -->
+                {% if (first_weekday + loop.index) % 7 == 0 and not loop.last %}
+            </div>
+            <div class="calendar-grid row">
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Day Details Modal -->
+<div class="modal fade" id="dayDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dayDetailsTitle">Attendance Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="dayDetailsContent">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Note -->
+<div class="card mt-4">
+    <div class="card-body">
+        <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Note</h6>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-success me-2">5</span>
+                    <small>Present Students</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-danger me-2">2</span>
+                    <small>Absent Students</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="text-muted me-2">B/L/D:</span>
+                    <small>Breakfast/Lunch/Dinner</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateHostelFilter(hostelType) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('hostel', hostelType);
+    window.location.href = url.toString();
+}
+
+function viewDayAttendance(dateStr) {
+    const modalTitle = document.getElementById('dayDetailsTitle');
+    const modalContent = document.getElementById('dayDetailsContent');
+    const hostelFilter = document.getElementById('hostelFilter').value;
+    
+    modalTitle.textContent = `Attendance Details - ${dateStr}`;
+    modalContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading attendance data for ${dateStr}...</p>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('dayDetailsModal'));
+    modal.show();
+    
+    // Fetch attendance data from API
+    fetch(`/staff/get_day_attendance/${dateStr}?hostel=${hostelFilter}`)
+        .then(response => response.json())
+        .then(data => {
+            renderDayDetails(dateStr, data, hostelFilter);
+        })
+        .catch(error => {
+            modalContent.innerHTML = `
+                <div class="text-center text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h5>Error Loading Data</h5>
+                    <p>Failed to load attendance data: ${error.message}</p>
+                </div>
+            `;
+        });
+}
+
+function renderDayDetails(dateStr, data, hostelFilter) {
+    const modalContent = document.getElementById('dayDetailsContent');
+    const totals = data.totals;
+    
+    let content = `
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title text-primary">Breakfast</h6>
+                        <div class="stats-number text-primary">${totals.breakfast.present + totals.breakfast.absent}</div>
+                        <div class="d-flex justify-content-center gap-2">
+                            <span class="badge bg-success">Present: ${totals.breakfast.present}</span>
+                            <span class="badge bg-danger">Absent: ${totals.breakfast.absent}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title text-success">Lunch</h6>
+                        <div class="stats-number text-success">${totals.lunch.present + totals.lunch.absent}</div>
+                        <div class="d-flex justify-content-center gap-2">
+                            <span class="badge bg-success">Present: ${totals.lunch.present}</span>
+                            <span class="badge bg-danger">Absent: ${totals.lunch.absent}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title text-info">Dinner</h6>
+                        <div class="stats-number text-info">${totals.dinner.present + totals.dinner.absent}</div>
+                        <div class="d-flex justify-content-center gap-2">
+                            <span class="badge bg-success">Present: ${totals.dinner.present}</span>
+                            <span class="badge bg-danger">Absent: ${totals.dinner.absent}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <h6>Detailed Attendance Breakdown</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-light">
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Hostel</th>
+                            <th>Breakfast</th>
+                            <th>Lunch</th>
+                            <th>Dinner</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    // Group students by ID
+    const students = {};
+    data.detailed.forEach(record => {
+        const [studentId, name, hostel, mealType, status] = record;
+        if (!students[studentId]) {
+            students[studentId] = {
+                id: studentId,
+                name: name,
+                hostel: hostel,
+                breakfast: 'Not Scanned',
+                lunch: 'Not Scanned',
+                dinner: 'Not Scanned'
+            };
+        }
+        students[studentId][mealType.toLowerCase()] = status;
+    });
+    
+    // Render student rows
+    Object.values(students).forEach(student => {
+        content += `
+            <tr>
+                <td>${student.id}</td>
+                <td>${student.name}</td>
+                <td>
+                    <span class="badge ${student.hostel === 'Female' ? 'bg-danger' : 'bg-primary'}">
+                        ${student.hostel}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${getStatusBadgeClass(student.breakfast)}">
+                        ${student.breakfast}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${getStatusBadgeClass(student.lunch)}">
+                        ${student.lunch}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${getStatusBadgeClass(student.dinner)}">
+                        ${student.dinner}
+                    </span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    content += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                ${hostelFilter === 'all' ? 'All Hostels' : hostelFilter + ' Hostel'} | 
+                Total Students: ${Object.keys(students).length}
+            </small>
+            <a href="/staff/attendance?date=${dateStr}" class="btn btn-primary btn-sm">
+                <i class="fas fa-external-link-alt me-1"></i> View in Scanner
+            </a>
+        </div>
+    `;
+    
+    modalContent.innerHTML = content;
+}
+
+function getStatusBadgeClass(status) {
+    switch(status) {
+        case 'Present': return 'bg-success';
+        case 'Absent': return 'bg-danger';
+        default: return 'bg-warning';
+    }
+}
+
+// Add hover effects to calendar days
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarDays = document.querySelectorAll('.calendar-day');
+    calendarDays.forEach(day => {
+        day.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('bg-warning')) {
+                this.style.backgroundColor = '#e9ecef';
+                this.style.transform = 'scale(1.02)';
+            }
+        });
+        day.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('bg-warning')) {
+                this.style.backgroundColor = '';
+                this.style.transform = '';
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+}
+.calendar-day {
+    transition: all 0.2s ease;
+    border: 1px solid #dee2e6;
+}
+.calendar-day:hover {
+    background-color: #e9ecef !important;
+    transform: scale(1.02);
+    z-index: 1;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.attendance-summary {
+    font-size: 0.75rem;
+}
+.calendar-header {
+    background-color: #3498db !important;
+}
+.meal-stats {
+    line-height: 1.2;
+}
+.stats-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 5px 0;
+}
+</style>
+{% endblock %}

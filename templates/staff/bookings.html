@@ -1,0 +1,216 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Booking Management - MessMate Staff{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Booking Management</h3>
+    <div class="d-flex gap-2">
+        <input type="date" class="form-control" id="dateFilter" value="{{ selected_date }}" 
+               onchange="window.location.href='{{ url_for('staff_bookings') }}?date=' + this.value" style="width: 180px;">
+        <button class="btn btn-outline-primary" onclick="exportReport()">
+            <i class="fas fa-download me-1"></i> Export Report
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Booking Statistics -->
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="stats-number text-primary">{{ meal_counts.get('Breakfast', 0) }}</div>
+                <small class="text-muted">Breakfast Bookings</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="stats-number text-success">{{ meal_counts.get('Lunch', 0) }}</div>
+                <small class="text-muted">Lunch Bookings</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="stats-number text-info">{{ meal_counts.get('Dinner', 0) }}</div>
+                <small class="text-muted">Dinner Bookings</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="stats-number text-warning">{{ total_students }}</div>
+                <small class="text-muted">Total Students Booked</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-calendar me-2"></i>
+            Bookings for {{ selected_date }}
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if bookings %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Meal Type</th>
+                            <th>Item</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings %}
+                        <tr>
+                            <td>{{ booking[0] }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if booking[2] == 'Breakfast' %}bg-primary
+                                    {% elif booking[2] == 'Lunch' %}bg-success
+                                    {% else %}bg-info{% endif %}">
+                                    {{ booking[2] }}
+                                </span>
+                            </td>
+                            <td>{{ booking[3] }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="cancelBooking({{ booking[4] }})">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-calendar-times text-muted fa-3x mb-3"></i>
+                <h5>No Bookings Found</h5>
+                <p class="text-muted">No bookings for the selected date.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Meal Item Popularity Chart -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-chart-bar me-2"></i>
+            Meal Item Popularity for {{ selected_date }}
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Filter by Meal Type:</label>
+                <select class="form-select" id="mealTypeFilter" onchange="updateItemChart()">
+                    <option value="all">All Meals</option>
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Meal Type</th>
+                        <th>Item</th>
+                        <th>Booking Count</th>
+                    </tr>
+                </thead>
+                <tbody id="itemChartBody">
+                    {% for item in item_popularity %}
+                    <tr>
+                        <td>
+                            <span class="badge 
+                                {% if item.meal_type == 'Breakfast' %}bg-primary
+                                {% elif item.meal_type == 'Lunch' %}bg-success
+                                {% else %}bg-info{% endif %}">
+                                {{ item.meal_type }}
+                            </span>
+                        </td>
+                        <td>{{ item.item }}</td>
+                        <td>
+                            <strong>{{ item.count }}</strong>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if not item_popularity %}
+        <div class="text-center py-4">
+            <i class="fas fa-chart-bar text-muted fa-3x mb-3"></i>
+            <h5>No Booking Data</h5>
+            <p class="text-muted">No item popularity data for the selected date.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function exportBookings() {
+    window.location.href = "{{ url_for('export_bookings') }}?date={{ selected_date }}";
+}
+
+function cancelBooking(bookingId) {
+    if (confirm('Are you sure you want to cancel this booking?')) {
+        // In real implementation, this would call an API endpoint
+        fetch(`/staff/cancel_booking/${bookingId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Booking cancelled successfully!');
+                location.reload();
+            } else {
+                alert('Error cancelling booking: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error cancelling booking. Please try again.');
+        });
+    }
+}
+
+function updateItemChart() {
+    const mealType = document.getElementById('mealTypeFilter').value;
+    const rows = document.querySelectorAll('#itemChartBody tr');
+    
+    rows.forEach(row => {
+        const rowMealType = row.cells[0].textContent.trim();
+        if (mealType === 'all' || rowMealType === mealType) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Initialize chart filter
+document.addEventListener('DOMContentLoaded', function() {
+    updateItemChart();
+});
+</script>
+{% endblock %}

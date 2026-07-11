@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Mess Management - Staff</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>University Mess Management System</h1>
+                {% if session.username %}
+                <div class="user-info">
+                    <span>Welcome, {{ session.username }}</span>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+        
+        {% if session.username %}
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('menu_management') }}">Menu Management</a></li>
+                <li><a href="{{ url_for('booking_summary') }}">Booking Summary</a></li>
+                <li><a href="{{ url_for('notifications') }}">Notifications</a></li>
+            </ul>
+        </nav>
+        {% endif %}
+        
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html> u include this {% if session.staff_role == 'admin' %}
+<li class="nav-item">
+    <a class="nav-link {% if request.endpoint == 'staff_menu' %}active{% endif %}" 
+       href="{{ url_for('staff_menu') }}">
+        <i class="fas fa-utensils me-2"></i> Menu Management
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link {% if request.endpoint == 'staff_admin' %}active{% endif %}" 
+       href="{{ url_for('staff_admin') }}">
+        <i class="fas fa-cog me-2"></i> Administration
+    </a>
+</li>
+{% endif %}

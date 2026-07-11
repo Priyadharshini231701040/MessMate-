@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - MessMate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background-color: #2c3e50;
+            min-height: 100vh;
+            padding-top: 20px;
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 15px 20px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #3498db;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        .card-header {
+            background-color: #3498db;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .badge {
+            font-size: 0.8em;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            color: rgb(0, 0, 0);
+            padding: 10px 0;
+            text-align: center;
+            margin-top: 30px;
+        }
+        .meal-timing-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .qr-code {
+            max-width: 100px;
+            max-height: 100px;
+        }
+
+        /* Unified Blue Styling */
+        .custom-blue {
+            background-color: #3498db !important;
+            color: white !important;
+        }
+        .custom-blue-outline {
+            border: 1px solid #3498db !important;
+            color: #3498db !important;
+            background-color: transparent !important;
+        }
+        .custom-blue-outline:hover {
+            background-color: #3498db !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar Navigation -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="text-center mb-4">
+                    <a href="{{ url_for('home') }}" class="navbar-brand text-white">
+                        <i class="fas fa-utensils me-2"></i> MessMate
+                    </a>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('home') }}"><i class="fas fa-home me-2"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i> Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('book') }}"><i class="fas fa-calendar-plus me-2"></i> Book Meals</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('history') }}"><i class="fas fa-history me-2"></i> History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reviews') }}"><i class="fas fa-star me-2"></i> Reviews</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('attendance') }}"><i class="fas fa-calendar-check me-2"></i> Attendance</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('fines') }}"><i class="fas fa-money-bill-wave me-2"></i> Fines</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('cancel_meal') }}"><i class="fas fa-times-circle me-2"></i> Cancel Meal</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('notifications') }}"><i class="fas fa-bell me-2"></i> Notifications 
+                            {% if notifications %}<span class="badge bg-danger">{{ notifications|length }}</span>{% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Dashboard</h3>
+                    <span class="badge custom-blue fs-6">Welcome, {{ session.user_name }} {{ gender_emoji }}</span>
+                </div>
+
+                <!-- Meal Timing Box -->
+                <div class="meal-timing-box">
+                    <h5 class="mb-3"><i class="fas fa-clock me-2"></i>Meal Timings</h5>
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h6>Breakfast</h6>
+                            <p class="mb-0">7:00 AM - 8:30 AM</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Lunch</h6>
+                            <p class="mb-0">11:00 PM - 2:00 PM</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Dinner</h6>
+                            <p class="mb-0">7:00 PM - 9:00 PM</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="row">
+                    <!-- Today's Meals -->
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="fas fa-utensils me-2"></i>Today's Meals ({{ today_str }})</h5>
+                            </div>
+                            <div class="card-body">
+                                {% for meal, details in bookings.items() %}
+                                    <div class="mb-3">
+                                        <h6>{{ meal }}</h6>
+                                        {% if details.food_items %}
+                                            <p>
+                                                {% for item in details.food_items %}
+                                                    <span class="badge custom-blue me-1">{{ item }}</span>
+                                                {% endfor %}
+                                            </p>
+                                            <p class="mb-1">Status: 
+                                                <span class="badge bg-{% if details.attendance == 'Present' %}success{% else %}warning{% endif %}">
+                                                    {{ details.attendance if details.attendance else 'Not Scanned' }}
+                                                </span>
+                                            </p>
+                                            {% if today_qr[meal] %}
+                                                <img src="data:image/png;base64,{{ today_qr[meal] }}" class="qr-code" alt="QR Code for {{ meal }}">
+                                            {% endif %}
+                                        {% else %}
+                                            <p class="text-muted">No meal booked</p>
+                                        {% endif %}
+                                    </div>
+                                    {% if not loop.last %}<hr>{% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tomorrow's Meals -->
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="fas fa-calendar me-2"></i>Tomorrow's Meals ({{ tomorrow_str }})</h5>
+                            </div>
+                            <div class="card-body">
+                                {% for meal, details in tomorrow.items() %}
+                                    <div class="mb-3">
+                                        <h6>{{ meal }}</h6>
+                                        {% if details.food_items %}
+                                            <p>
+                                                {% for item in details.food_items %}
+                                                    <span class="badge custom-blue me-1">{{ item }}</span>
+                                                {% endfor %}
+                                            </p>
+                                            {% if tomorrow_qr[meal] %}
+                                                <img src="data:image/png;base64,{{ tomorrow_qr[meal] }}" class="qr-code" alt="QR Code for {{ meal }}">
+                                            {% endif %}
+                                        {% else %}
+                                            <p class="text-muted">No meal booked yet</p>
+                                            <a href="{{ url_for('book') }}" class="btn btn-sm custom-blue-outline">Book Now</a>
+                                        {% endif %}
+                                    </div>
+                                    {% if not loop.last %}<hr>{% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                
+
+                <footer class="footer mt-5">
+                    <div class="container">
+                        <p class="mb-0">{{ footer_symbol }}</p>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,616 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Fine Management - MessMate Staff{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Fine Management</h3>
+    <div class="d-flex gap-2">
+        <select class="form-select" id="periodFilter" onchange="filterFinesByPeriod()" style="width: 150px;">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="year">This Year</option>
+        </select>
+        <select class="form-select" id="statusFilter" onchange="filterFines()" style="width: 150px;">
+            <option value="all">All Status</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="paid">Paid</option>
+        </select>
+        <button class="btn btn-outline-primary" onclick="exportReport()">
+            <i class="fas fa-download me-1"></i> Export Report
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Fines Summary -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Fines Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="stats-number text-danger" id="totalFines">₹0</div>
+                    <small class="text-muted">Total Fines Amount</small>
+                </div>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="stats-number text-warning" id="unpaidFines">₹0</div>
+                        <small class="text-muted">Unpaid</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="stats-number text-success" id="paidFines">₹0</div>
+                        <small class="text-muted">Paid</small>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted" id="summaryPeriod">Showing: All Time</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-warning w-100 mb-2" onclick="recalculateFines()">
+                    <i class="fas fa-calculator me-1"></i> Recalculate Fines
+                </button>
+                <button class="btn btn-success w-100" onclick="showWaiveFineModal()">
+                    <i class="fas fa-hand-holding-usd me-1"></i> Waive Fine
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fines List -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>All Fines</h5>
+                <small class="text-muted" id="finesCount">Showing 0 fines</small>
+            </div>
+            <div class="card-body">
+                {% if fines %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="finesTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Student</th>
+                                    <th>Hostel</th>
+                                    <th>Date</th>
+                                    <th>Meal</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fine in fines %}
+                                <tr data-status="{% if fine[6] %}paid{% else %}unpaid{% endif %}" 
+                                    data-date="{{ fine[3] }}" 
+                                    data-student-id="{{ fine[7] }}">
+                                    <td>{{ fine[0] }}</td>
+                                    <td>
+                                        <strong>{{ fine[1] }}</strong>
+                                        <br><small class="text-muted">ID: {{ fine[7] }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if fine[2] == 'Male' %}bg-primary{% else %}bg-pink{% endif %}">
+                                            {{ fine[2] }}
+                                        </span>
+                                    </td>
+                                    <td>{{ fine[3] }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ fine[4] }}</span>
+                                    </td>
+                                    <td>
+                                        <strong class="{% if fine[6] %}text-success{% else %}text-danger{% endif %}">
+                                            ₹{{ fine[5] }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        {% if fine[6] %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Unpaid</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not fine[6] %}
+                                            <button class="btn btn-sm btn-success" 
+                                                    onclick="markAsPaid({{ fine[0] }})"
+                                                    data-bs-toggle="tooltip" title="Mark as Paid">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-warning" 
+                                                    onclick="waiveSingleFine({{ fine[0] }})"
+                                                    data-bs-toggle="tooltip" title="Waive Fine">
+                                                <i class="fas fa-hand-holding-usd"></i>
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                onclick="viewFineDetails({{ fine[0] }})"
+                                                data-bs-toggle="tooltip" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-money-bill-wave text-muted fa-3x mb-3"></i>
+                        <h5>No Fines Found</h5>
+                        <p class="text-muted">There are no fines in the system for the selected period.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Waive Fine Modal -->
+<div class="modal fade" id="waiveFineModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Waive Fine</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="waiveFineForm" onsubmit="submitWaiveFine(event)">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="studentId" class="form-label">Student ID *</label>
+                            <input type="text" class="form-control" id="studentId" 
+                                   placeholder="Enter Student ID" required>
+                            <div class="form-text">Enter the student's ID number</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="hostelType" class="form-label">Hostel Type *</label>
+                            <select class="form-select" id="hostelType" required>
+                                <option value="">Select Hostel Type</option>
+                                <option value="Male">Male Hostel</option>
+                                <option value="Female">Female Hostel</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fineDate" class="form-label">Fine Date *</label>
+                            <input type="date" class="form-control" id="fineDate" 
+                                   value="{{ today_date }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="mealType" class="form-label">Meal Type *</label>
+                            <select class="form-select" id="mealType" required>
+                                <option value="">Select Meal Type</option>
+                                <option value="Breakfast">Breakfast</option>
+                                <option value="Lunch">Lunch</option>
+                                <option value="Dinner">Dinner</option>
+                                <option value="Manual">Manual Fine</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="fineAmount" class="form-label">Amount to Waive *</label>
+                        <input type="number" class="form-control" id="fineAmount" 
+                               placeholder="Enter amount" min="1" step="0.01" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="waiveReason" class="form-label">Reason for Waiving *</label>
+                        <textarea class="form-control" id="waiveReason" rows="3" 
+                                  placeholder="Enter reason for waiving this fine..." required></textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        This action will create a waived fine record. The amount will be marked as paid but waived.
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-hand-holding-usd me-1"></i> Waive Fine
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fine Details Modal -->
+<div class="modal fade" id="fineDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Fine Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="fineDetailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let currentPeriod = 'all';
+let allFines = [];
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Store all fines data
+    allFines = Array.from(document.querySelectorAll('#finesTable tbody tr')).map(row => {
+        return {
+            element: row,
+            status: row.getAttribute('data-status'),
+            date: row.getAttribute('data-date'),
+            studentId: row.getAttribute('data-student-id')
+        };
+    });
+    
+    updateFineSummary();
+    updateFinesCount();
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+function filterFines() {
+    const status = document.getElementById('statusFilter').value;
+    filterFinesByStatusAndPeriod(status, currentPeriod);
+}
+
+function filterFinesByPeriod() {
+    currentPeriod = document.getElementById('periodFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    filterFinesByStatusAndPeriod(status, currentPeriod);
+}
+
+function filterFinesByStatusAndPeriod(status, period) {
+    const rows = document.querySelectorAll('#finesTable tbody tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        const rowDate = row.getAttribute('data-date');
+        const shouldShowByStatus = status === 'all' || rowStatus === status;
+        const shouldShowByPeriod = shouldShowByDatePeriod(rowDate, period);
+        
+        if (shouldShowByStatus && shouldShowByPeriod) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    updateFineSummary();
+    updateFinesCount(visibleCount);
+    updateSummaryPeriod(period);
+}
+
+function shouldShowByDatePeriod(dateString, period) {
+    if (period === 'all') return true;
+    
+    const date = new Date(dateString);
+    const today = new Date();
+    
+    switch(period) {
+        case 'today':
+            return date.toDateString() === today.toDateString();
+        case 'week':
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+            return date >= startOfWeek;
+        case 'month':
+            return date.getMonth() === today.getMonth() && 
+                   date.getFullYear() === today.getFullYear();
+        case 'year':
+            return date.getFullYear() === today.getFullYear();
+        default:
+            return true;
+    }
+}
+
+function updateSummaryPeriod(period) {
+    const periodText = {
+        'all': 'All Time',
+        'today': 'Today',
+        'week': 'This Week',
+        'month': 'This Month',
+        'year': 'This Year'
+    }[period] || 'All Time';
+    
+    document.getElementById('summaryPeriod').textContent = `Showing: ${periodText}`;
+}
+
+function updateFinesCount(count) {
+    const totalCount = count !== undefined ? count : document.querySelectorAll('#finesTable tbody tr').length;
+    document.getElementById('finesCount').textContent = `Showing ${totalCount} fines`;
+}
+
+function updateFineSummary() {
+    let total = 0;
+    let unpaid = 0;
+    let paid = 0;
+    
+    document.querySelectorAll('#finesTable tbody tr').forEach(row => {
+        if (row.style.display !== 'none') {
+            const amountText = row.cells[5].textContent.replace('₹', '').trim();
+            const amount = parseFloat(amountText) || 0;
+            const isPaid = row.cells[6].querySelector('.badge').textContent === 'Paid';
+            
+            total += amount;
+            if (isPaid) {
+                paid += amount;
+            } else {
+                unpaid += amount;
+            }
+        }
+    });
+    
+    document.getElementById('totalFines').textContent = `₹${total.toFixed(2)}`;
+    document.getElementById('unpaidFines').textContent = `₹${unpaid.toFixed(2)}`;
+    document.getElementById('paidFines').textContent = `₹${paid.toFixed(2)}`;
+}
+
+function markAsPaid(fineId) {
+    if (confirm('Mark this fine as paid?')) {
+        fetch(`/staff/mark_fine_paid/${fineId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.querySelector(`tr:has(button[onclick="markAsPaid(${fineId})"])`);
+                    if (row) {
+                        row.cells[6].innerHTML = '<span class="badge bg-success">Paid</span>';
+                        row.setAttribute('data-status', 'paid');
+                        updateFineSummary();
+                    }
+                    showAlert('Fine marked as paid successfully!', 'success');
+                } else {
+                    showAlert('Error marking fine as paid: ' + data.error, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error marking fine as paid', 'danger');
+            });
+    }
+}
+
+function waiveSingleFine(fineId) {
+    if (confirm('Waive this fine? This action cannot be undone.')) {
+        fetch(`/staff/waive_single_fine/${fineId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                reason: 'Individual fine waiver by staff'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const row = document.querySelector(`tr:has(button[onclick="waiveSingleFine(${fineId})"])`);
+                if (row) {
+                    row.remove();
+                    updateFineSummary();
+                    updateFinesCount();
+                }
+                showAlert('Fine waived successfully!', 'success');
+            } else {
+                showAlert('Error waiving fine: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error waiving fine', 'danger');
+        });
+    }
+}
+
+function showWaiveFineModal() {
+    // Reset form
+    document.getElementById('waiveFineForm').reset();
+    document.getElementById('fineDate').value = new Date().toISOString().split('T')[0];
+    
+    const modal = new bootstrap.Modal(document.getElementById('waiveFineModal'));
+    modal.show();
+}
+
+function submitWaiveFine(event) {
+    event.preventDefault();
+    
+    const formData = {
+        student_id: document.getElementById('studentId').value,
+        hostel_type: document.getElementById('hostelType').value,
+        date: document.getElementById('fineDate').value,
+        meal_type: document.getElementById('mealType').value,
+        amount: document.getElementById('fineAmount').value,
+        reason: document.getElementById('waiveReason').value
+    };
+    
+    // Validation
+    if (!formData.student_id || !formData.hostel_type || !formData.date || 
+        !formData.meal_type || !formData.amount || !formData.reason) {
+        showAlert('Please fill all required fields', 'warning');
+        return;
+    }
+    
+    fetch('/staff/waive_fine', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Fine waived successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('waiveFineModal')).hide();
+            // Reload page to show updated fines
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('Error waiving fine: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error waiving fine', 'danger');
+    });
+}
+
+function recalculateFines() {
+    if (confirm('Recalculate all fines? This may take a few moments.')) {
+        showAlert('Recalculating fines...', 'info');
+        
+        fetch('/staff/recalculate_fines')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showAlert('Fines recalculated successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert('Error recalculating fines: ' + (data.error || 'Unknown error'), 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error recalculating fines. Please try again.', 'danger');
+            });
+    }
+}
+
+function exportFines() {
+    const period = document.getElementById('periodFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    
+    const url = `/staff/export_fines?period=${period}&status=${status}`;
+    window.open(url, '_blank');
+}
+
+function viewFineDetails(fineId) {
+    fetch(`/staff/get_fine_details/${fineId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('fineDetailsContent').innerHTML = `
+                    <div class="row">
+                        <div class="col-6"><strong>Fine ID:</strong></div>
+                        <div class="col-6">${data.fine.id}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Student:</strong></div>
+                        <div class="col-6">${data.fine.student_name} (ID: ${data.fine.student_id})</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Hostel:</strong></div>
+                        <div class="col-6">${data.fine.hostel_type}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Date:</strong></div>
+                        <div class="col-6">${data.fine.date}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Meal Type:</strong></div>
+                        <div class="col-6">${data.fine.meal_type}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Amount:</strong></div>
+                        <div class="col-6">₹${data.fine.amount}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Status:</strong></div>
+                        <div class="col-6">
+                            <span class="badge ${data.fine.paid ? 'bg-success' : 'bg-danger'}">
+                                ${data.fine.paid ? 'Paid' : 'Unpaid'}
+                            </span>
+                        </div>
+                    </div>
+                    ${data.fine.waived ? `
+                    <div class="row">
+                        <div class="col-6"><strong>Waived:</strong></div>
+                        <div class="col-6"><span class="badge bg-warning">Yes</span></div>
+                    </div>
+                    ` : ''}
+                    ${data.fine.reason ? `
+                    <div class="row">
+                        <div class="col-6"><strong>Reason:</strong></div>
+                        <div class="col-6">${data.fine.reason}</div>
+                    </div>
+                    ` : ''}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <small class="text-muted">Created: ${data.fine.created_at}</small>
+                        </div>
+                    </div>
+                `;
+                
+                const modal = new bootstrap.Modal(document.getElementById('fineDetailsModal'));
+                modal.show();
+            } else {
+                showAlert('Error loading fine details', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error loading fine details', 'danger');
+        });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+
+<style>
+.bg-pink {
+    background-color: #e83e8c !important;
+}
+.stats-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
